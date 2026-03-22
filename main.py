@@ -9,7 +9,7 @@ def get_base_path():
         return sys._MEIPASS;
     return os.path.dirname(os.path.abspath(__file__));
 
-base_dir = get_base_path()
+base_dir = get_base_path();
 if base_dir not in sys.path:
     sys.path.insert(0, base_dir)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs'));

@@ -7,24 +7,19 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-# CURRENT_VERSION = "v0.1";
-CURRENT_VERSION = "v0.1"
+# CURRENT_VERSION = "v0.2";
+CURRENT_VERSION = "v0.2"
 VERSION_URL = "https://raw.githubusercontent.com/matyas095/ZM2_Mereni/main/version.json";
 
 def check_for_updates():
     try:
         response = requests.get(VERSION_URL, timeout=5);
         data = response.json();
-        latest_version = data.get("version");
-        print(latest_version)
-        download_url = data.get("url");
-        print(download_url)
-        print(CURRENT_VERSION)
+        latest_version = data['tag_name'].lstrip('v')
+        download_url = data.get("url")
+        local_v = CURRENT_VERSION.lstrip('v')
 
-        remote_clean = latest_version.replace('v', '').strip()
-        local_clean = CURRENT_VERSION.replace('v', '').strip()
-
-        if remote_clean > local_clean:
+        if float(latest_version) > float(local_v):
             root = messagebox.askyesno("Update Available", 
                 f"A new version ({latest_version}) is available!\n"
                 "Would you like to download it now?");

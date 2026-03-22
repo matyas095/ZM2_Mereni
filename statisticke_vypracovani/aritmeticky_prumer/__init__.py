@@ -71,7 +71,7 @@ def run(input):
         print(color_print.BOLD + key + color_print.END);
 
         for j, val in enumerate(arr):
-            connector = "└──" if j != len(toPrint) - 1 else "├──";
+            connector = "└──" if j == len(arr) - 1 else "├──";
             what = "Aritmetický průměr" if j == 0 else "Chyba aritmetického průměru";
 
             print(f"{connector}{color_print.UNDERLINE}{what}{color_print.END} = {val}");

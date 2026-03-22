@@ -7,43 +7,36 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-# CURRENT_VERSION = "v0.5";
-CURRENT_VERSION = "v0.5"
+# CURRENT_VERSION = "v0.1";
+CURRENT_VERSION = "v0.1"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest";
 
 def check_for_updates():
-    headers = {'User-Agent': 'MyPythonApp-Updater'}
+    headers = {'User-Agent': 'MyPythonApp-Updater'};
     
     try:
-        response = requests.get(VERSION_URL, headers=headers, timeout=5)
+        response = requests.get(VERSION_URL, headers=headers, timeout=5);
         
         if response.status_code == 200:
-            data = response.json()
+            data = response.json();
             
-            # The API always uses 'tag_name'
-            remote_tag = data.get("tag_name") 
+            remote_tag = data.get("tag_name");
             
-            if not remote_tag:
-                print("⚠️ Could not find tag_name in API response.")
-                return
+            if not remote_tag: return print("⚠️ Could not find tag_name in API response.");
 
-            # Normalize: "v0.2" -> "0.2"
-            remote_v = remote_tag.lstrip('v').strip()
-            local_v = CURRENT_VERSION.lstrip('v').strip()
+            remote_v = remote_tag.lstrip('v').strip();
+            local_v = CURRENT_VERSION.lstrip('v').strip();
 
-            # 3. CRITICAL: Only show if Remote is GREATER than Local
             if float(remote_v) > float(local_v):
-                print(f"🚀 Update Available: {remote_tag}")
-                # 
-                # Trigger your popup here
+                print(f"🚀 Update Available: {remote_tag}");
             else:
-                print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}")
+                print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}");
                 
         elif response.status_code == 404:
-            print("ℹ️ No releases found yet. Pushing v0.3 via deploy.sh will fix this.")
+            print("ℹ️ No releases found yet. Pushing v0.3 via deploy.sh will fix this.");
             
     except Exception as e:
-        print(f"❌ Connection error: {e}")
+        print(f"❌ Connection error: {e}");
 
 def get_base_path():
     """Finds the base path whether running as .py or .exe"""

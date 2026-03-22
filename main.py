@@ -21,6 +21,7 @@ def check_for_updates():
             data = response.json();
             
             remote_tag = data.get("tag_name");
+            url = data.get("url");
             
             if not remote_tag: return print("⚠️ Could not find tag_name in API response.");
 
@@ -28,7 +29,7 @@ def check_for_updates():
             local_v = CURRENT_VERSION.lstrip('v').strip();
 
             if float(remote_v) > float(local_v):
-                print(f"🚀 Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{data.get("url")}");
+                print(f"🚀 Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{url}");
             else:
                 print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}");
                 

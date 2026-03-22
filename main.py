@@ -7,8 +7,8 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-# CURRENT_VERSION = "v0.2";
-CURRENT_VERSION = "v0.2"
+# CURRENT_VERSION = "v0.1";
+CURRENT_VERSION = "v0.1"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest";
 
 def check_for_updates():
@@ -28,7 +28,7 @@ def check_for_updates():
             local_v = CURRENT_VERSION.lstrip('v').strip();
 
             if float(remote_v) > float(local_v):
-                print(f"🚀 Update Available: {remote_tag}");
+                print(f"🚀 Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{data.get("url")}");
             else:
                 print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}");
                 

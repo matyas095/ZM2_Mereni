@@ -1,2 +1,21 @@
-*.zip
+# PyInstaller folders
+build/
+dist/
+*.spec
+
+# Security / Certificates (DO NOT SHARE THESE ON GITHUB)
+*.pfx
+*.ps1
+cert_password.txt
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environment
+.venv/
+.vscode/
+PYINSTALLER_CMD
+
+# Git
 .gitignore

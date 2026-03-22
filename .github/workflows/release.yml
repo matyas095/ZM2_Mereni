@@ -80,16 +80,7 @@ jobs:
         with:
           name: Release ${{ github.ref_name }} - Statistické vypracování dat
           body: |
-            ## 📊 Statistika Tool ${{ github.ref_name }}
-            
-            ### 🛠️ Změny v této verzi:
-            - Automaticky sestaveno přes GitHub Actions.
-            - Obsahuje Windows EXE (podepsané) a Linux binárku.
-            
-            ### 🔐 Instalace certifikátu:
-            Pro odstranění varování Windows/Linux spusťte přiložený skript `install_trust` jako administrátor.
-
-            # Statistické vypracování dat
+            # Statistické vypracování dat ${{ github.ref_name }}
             ## Metody
             - **aritmeticky_prumer** - Aritmetický průměr
 
@@ -148,6 +139,9 @@ jobs:
             ```bash
             ./statistika_linux -m aritmeticky_prumer -i input/KARL.txt
             ```
+
+            ### 🔐 Instalace certifikátu:
+            Pro odstranění varování Windows/Linux spusťte přiložený skript `install_trust` jako administrátor.
           files: |
             statistika_${{ github.ref_name }}_windows.zip
             statistika_${{ github.ref_name }}_linux.tar.gz

@@ -1,0 +1,56 @@
+name: Build and Release
+on:
+  push:
+    tags:
+      - 'v*' # Runs only when you push a tag like v1.0.0
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: pip install pyinstaller numpy
+
+      # --- WINDOWS BUILD & SIGN ---
+      - name: Build EXE (Windows)
+        if: matrix.os == 'windows-latest'
+        run: python -m PyInstaller --onefile --name statistika --add-data "statisticke_vypracovani;statisticke_vypracovani" main.py
+
+      - name: Sign EXE (Windows)
+        if: matrix.os == 'windows-latest'
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
+        shell: powershell
+        run: |
+          $pfxPath = Join-Path $pwd "cert.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign /f $pfxPath /p $env:PFX_PASS /fd SHA256 /t http://timestamp.digicert.com dist/statistika.exe
+
+      # --- LINUX BUILD ---
+      - name: Build Binary (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: pyinstaller --onefile --name statistika_linux --add-data "statisticke_vypracovani:statisticke_vypracovani" main.py
+
+      # --- AUTOMATIC RELEASE ---
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/statistika.exe
+            dist/statistika_linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

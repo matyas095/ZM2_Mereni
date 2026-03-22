@@ -3,13 +3,16 @@ import importlib;
 import os;
 import sys;
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs'));
-
 def get_base_path():
     """Finds the base path whether running as .py or .exe"""
     if getattr(sys, 'frozen', False):
         return sys._MEIPASS;
     return os.path.dirname(os.path.abspath(__file__));
+
+base_dir = get_base_path()
+if base_dir not in sys.path:
+    sys.path.insert(0, base_dir)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs'));
 
 def get_available_methods():
     base = get_base_path();
@@ -46,8 +49,8 @@ def main():
 
         result = method_module.run(args.input);
         # print(f"Result from {args.method}: {result}");
-    except ImportError:
-        print(f"Error: Method '{args.method}' not found in statisticke_vypracovani.");
+    except ImportError as e:
+        print(f"Error: Method '{args.method}' not found in statisticke_vypracovani.\n{e}");
     except AttributeError:
         print(f"Error: Module '{args.method}' doesn't have a 'run' function.");
     except Exception as e:

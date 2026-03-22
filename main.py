@@ -1,17 +1,26 @@
-import argparse
-import importlib
-import os
-import sys
+import argparse;
+import importlib;
+import os;
+import sys;
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs'));
+
+def get_base_path():
+    """Finds the base path whether running as .py or .exe"""
+    if getattr(sys, 'frozen', False):
+        return sys._MEIPASS;
+    return os.path.dirname(os.path.abspath(__file__));
 
 def get_available_methods():
-    """Scans the folder for Python files to use as valid methods."""
-    folder = "statisticke_vypracovani";
+    base = get_base_path();
+    folder = os.path.join(base, "statisticke_vypracovani");
+    
     if not os.path.exists(folder):
         return [];
 
     return [
         d for d in os.listdir(folder)
-        if os.path.isdir(os.path.join(folder, d)) and not d.startswith("__") and not d.startswith(".")
+        if os.path.isdir(os.path.join(folder, d)) and not d.startswith(("_", "."))
     ];
 
     # return [

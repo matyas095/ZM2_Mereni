@@ -7,8 +7,9 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-CURRENT_VERSION = "v0.1";
-VERSION_URL = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/version.json";
+# CURRENT_VERSION = "v0.2";
+CURRENT_VERSION = os.getenv("APP_VERSION", "v0.1-dev")
+VERSION_URL = "https://raw.githubusercontent.com/matyas095/ZM2_Mereni/main/version.json";
 
 def check_for_updates():
     try:

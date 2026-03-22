@@ -7,15 +7,15 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-# CURRENT_VERSION = "v0.2";
-CURRENT_VERSION = "v0.2"
+# CURRENT_VERSION = "v0.3";
+CURRENT_VERSION = "v0.3"
 VERSION_URL = "https://raw.githubusercontent.com/matyas095/ZM2_Mereni/main/version.json";
 
 def check_for_updates():
     try:
         response = requests.get(VERSION_URL, timeout=5);
         data = response.json();
-        latest_version = data['tag_name'].lstrip('v')
+        latest_version = data.get("tag_name").lstrip('v')
         download_url = data.get("url")
         local_v = CURRENT_VERSION.lstrip('v')
 

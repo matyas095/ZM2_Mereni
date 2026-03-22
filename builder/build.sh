@@ -10,13 +10,12 @@ if [ -n "$1" ]; then
 else
     LAST_VER=$(ls "$SCRIPT_DIR/release" 2>/dev/null | grep -oP 'v\d+\.\d+' | sort -V | tail -1)
     DEFAULT_VER=${LAST_VER:-"v0.1"}
-    echo -n "🚀 Enter Build Version [Default $DEFAULT_VER]: "
+    echo -n "Enter Build Version [Default $DEFAULT_VER]: "
     read USER_VER
     VERSION=${USER_VER:-$DEFAULT_VER}
 fi
 
 if [ "$EUID" -ne 0 ]; then
-    # We pass $VERSION as an argument to the sudo call so it doesn't ask again
     sudo "$0" "$VERSION"
     exit $?
 fi
@@ -53,7 +52,7 @@ if [ -f "$ICON_PATH" ]; then
 fi
 
 docker run --rm -v "$PROJECT_ROOT:/src" cdrx/pyinstaller-windows \
-"pip install numpy requests && pyinstaller --onefile $ICON_STR --name ${EXE_NAME} --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py"
+"pip install numpy requests && pyinstaller --onefile $ICON_STR --name ${EXE_NAME} --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py --hidden-import \"tkinter\" --hidden-import \"tkinter.filedialog\""
 
 mv "$PROJECT_ROOT/dist/${EXE_NAME}.exe" "$SCRIPT_DIR/dist/" 2>/dev/null
 

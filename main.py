@@ -7,7 +7,7 @@ import requests;
 import webbrowser;
 from tkinter import messagebox;
 
-# CURRENT_VERSION = "v0.2";
+# CURRENT_VERSION = "v0.1";
 CURRENT_VERSION = "v0.1"
 VERSION_URL = "https://raw.githubusercontent.com/matyas095/ZM2_Mereni/main/version.json";
 

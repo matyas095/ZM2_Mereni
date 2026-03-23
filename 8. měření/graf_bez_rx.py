@@ -32,7 +32,7 @@ def prep_Plot(hodnoty, chyby, title):
     plt.xticks(t);
 
     plt.xlabel('t [s]');
-    plt.ylabel('ln(U) [V]');
+    plt.ylabel('ln(U/V) [-]');
     plt.title(title);
     plt.legend();
     plt.grid(alpha=0.3);

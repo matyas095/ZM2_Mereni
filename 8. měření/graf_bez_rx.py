@@ -39,11 +39,11 @@ def prep_Plot(hodnoty, chyby, title):
     plt.savefig(f'grafy/{title}.svg', format='svg', bbox_inches='tight');
     plt.close();
 
-    return (k, q);
+    return (k, q, chyba_k);
 
 hodnoty = {};
 
-with open("input") as f:
+with open("input.txt", "r") as f:
     current_tag = "";
     select_Tag = False;
     for line in f:
@@ -62,20 +62,31 @@ with open("input") as f:
 
 kapacita_C = 0.0000000470;
 R_0 = 1;
+R_0_chyba = 1;
 R = 1;
+R_chyba = 1;
 
 for k, v in hodnoty.items():
-    k_primky, q_primky = prep_Plot(
+    k_primky, q_primky, chyba_k = prep_Plot(
         v["hodnoty"],
         v["chyby"],
         k
     );
 
-    # print(k, q)
-    if k == "Semilogaritmická regrese napětí vybíjenýho kondenzátoru bez připojeného odporu $R_x$":
+    if "bez" in k:
         R_0 = (-1 / (k_primky * kapacita_C));
+        R_0_chyba = (R_0 * chyba_k / abs(k_primky));
     else:
         R = (-1 / (k_primky * kapacita_C));
+        R_chyba = (R * chyba_k / abs(k_primky));
 
-print(f"R_x = {(R * R_0)/(R_0 - R) / 10 ** 6}");
+R_x = (R * R_0)/(R_0 - R);
+R_x_Chyba = 1 / ((R_0 - R) ** 2) * math.sqrt((R_0 ** 4) * (R_0_chyba ** 2) + (R ** 4) * (R_chyba ** 2));
+
+print(f"R_0 = {R_0}");
+print(f"> Chyba R_0 = {R_0_chyba}");
+print(f"R = {R}");
+print(f"> Chyba R = {R_chyba}");
+print(f"R_x = {R_x}");
+print(f"> Chyba R_x = {R_x_Chyba}");
 

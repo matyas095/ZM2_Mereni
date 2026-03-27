@@ -8,7 +8,7 @@ def generate_requirements():
     # 1. Get a list of all built-in Python modules to ignore them
     stdlib: set[str] = {m.name for m in pkgutil.iter_modules() if m.module_finder is None}
     # Add common ones that sometimes hide
-    extras = {'os', 'sys', 'argparse', 'math', 'ast', 'unittest', 'logging', 'json'}
+    extras = {'os', 'sys', 'argparse', 'math', 'ast', 'unittest', 'logging', 'json', "re"}
     stdlib.update(extras)
 
     # 2. Get a list of LOCAL folders and files to ignore them

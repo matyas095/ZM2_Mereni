@@ -10,11 +10,6 @@ else:
 
 sys.path = [BASE_DIR, os.path.join(BASE_DIR, "statisticke_vypracovani")] + sys.path;
 
-import requests;
-import webbrowser;
-from tkinter import messagebox;
-import utils;
-
 # CURRENT_VERSION = "v0.6";
 CURRENT_VERSION = "v0.6"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest";
@@ -23,6 +18,7 @@ def version_to_tuple(v):
     return tuple(map(int, (v.split("."))));
 
 def check_for_updates():
+    import requests;
     headers = {'User-Agent': 'StatistikaApp-Updater'};
     
     try:
@@ -168,9 +164,8 @@ def main():
             print(f"Chybný formát vro dat: {message}");
             sys.exit(1);
 
-    result = method_module.run(args);
     try:
-        # result = method_module.run(args);
+        result = method_module.run(args);
     
         if getattr(args, 'save', False) and result:
             with open(f"vysledek_{args.method}.txt", "w") as f:

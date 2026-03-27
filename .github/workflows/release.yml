@@ -46,6 +46,14 @@ jobs:
           python -m pip install pyinstaller==5.13.2 antlr4-python3-runtime==4.11 && \
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi && \
           pyinstaller --onefile --noconfirm --icon builder/app_icon.ico --name statistika \
+          --upx-dir /usr/bin \
+          --clean \
+          --exclude-module tkinter \
+          --exclude-module tcl \
+          --exclude-module tk \
+          --exclude-module _tkinter \
+          --exclude-module IPython \
+          --exclude-module notebook \
           --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
           --collect-all sympy \
           --collect-all matplotlib \

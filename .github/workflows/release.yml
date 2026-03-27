@@ -42,9 +42,9 @@ jobs:
       - name: Build Windows EXE
         run: |
           docker run --rm -v "$(pwd):/src" cdrx/pyinstaller-windows \
-          "pip install --upgrade pip && \
-          pip install pyinstaller==6.11.0 antlr4-python3-runtime==4.11 && \
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && \
+          "python -m pip install --upgrade pip && \
+          python -m pip install pyinstaller==6.11.0 antlr4-python3-runtime==4.11 && \
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi && \
           pyinstaller --onefile --noconfirm --icon builder/app_icon.ico --name statistika \
           --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
           --collect-all sympy \

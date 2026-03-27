@@ -15,8 +15,8 @@ import webbrowser;
 from tkinter import messagebox;
 import utils;
 
-# CURRENT_VERSION = "v0.5";
-CURRENT_VERSION = "v0.5"
+# CURRENT_VERSION = "v0.6";
+CURRENT_VERSION = "v0.6"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest";
 
 def version_to_tuple(v):

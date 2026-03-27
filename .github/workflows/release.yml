@@ -29,15 +29,28 @@ jobs:
 
       - name: Build Linux Binary
         run: |
-          pyinstaller --onefile --name statistika_${{ github.ref_name }}_linux \
-          --add-data 'statisticke_vypracovani:statisticke_vypracovani' main.py
+          pyinstaller --onefile --noconfirm \
+          --name statistika_${{ github.ref_name }}_linux \
+          --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --collect-all sympy \
+          --collect-all matplotlib \
+          --collect-all scipy \
+          --hidden-import sympy.parsing.latex \
+          --hidden-import matplotlib.backends.backend_tkagg \
+          main.py
 
       - name: Build Windows EXE
         run: |
           docker run --rm -v "$(pwd):/src" cdrx/pyinstaller-windows \
           "if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && \
-          pip install pyinstaller && \
-          pyinstaller --onefile --icon builder/app_icon.ico --name statistika --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py"
+          pip install pyinstaller antlr4-python3-runtime==4.11 && \
+          pyinstaller --onefile --noconfirm --icon builder/app_icon.ico --name statistika \
+          --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
+          --collect-all sympy \
+          --collect-all matplotlib \
+          --collect-all scipy \
+          --hidden-import sympy.parsing.latex \
+          main.py"
 
       - name: Sign Windows EXE
         run: |
@@ -110,6 +123,36 @@ jobs:
                     - VELIČINA\
                     ├──Aritmetický průměr = ČÍSLO\
                     └──Chyba aritmetického průměru = ČÍSLO
+            - **neprima_chyba** - Nepřímá chyba měření
+              - Vypočítá nepřímou chybu dle zadaného vstahu
+              - Vstup
+                  - `soubor [txt, -, ...] {r}`
+                      - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jeho struktura je následující: `ELEMENTY. ..DATA\FUNKCE ...DATA` s tím, že pro každou novou veličinu zadáme do nového řádku, příklad níže, nebo [zde](statisticke_vypracovani/neprima_chyba/input/input_file) 
+                      - příklad
+                          ```bash
+                          ELEMENTY
+                              t=0, 600, 1200, 1800, 2400, 3000, 3600
+                              U=300, 297, 291, 287, 284, 278, 274
+
+                          FUNKCE
+                              R=t / (C * ln(U_0 / U))
+                                  FUNC_KONSTANTY
+                                      U_0=300
+                                      C=0.000000047
+                          ```
+                  - `soubor Excel [xslx] {r}`
+                      - *Excelový soubor* obsahuje tabulku (jeden list zatím vro) obsahující data do sloupců (nestrukturovanost bude trestána) (jedna tabulka na jeden soubor) je nutné k tomu přidat jednoduché flagy
+                      - `-r [--rovnice] "ROVNICE"`
+                          - Rovnice pro kterou bude nepřímá chyba vypočítaná (zatím textově pak LaTeXově)
+                      - `-k [--konstanty] '{ "PROMĚNNÁ": ČÍSLO }'`
+                          - Přidá konstanty do rovnice
+                      - Příklad zvolání
+                          ```bash
+                          ./statistika_v0.1_linux neprima_chyba -i test.xlsx -r "R=t / (C * ln(U_0 / U))" -k '{"U_0": 300, "C": 0.0000000470}'
+                          ```
+              - Výstup `print ->`
+                  - VELIČINA\
+                  └──__**Chyba**__ = ČÍSLO
 
             > [!WARNING]
             > Čísla je NUTNÉ zapsat v . pokud jsou desetinné např.: 34.23, čárka , je pouze jako oddělovač dat.
@@ -117,7 +160,7 @@ jobs:
             ### Vyvolávání metod
             Pro vyvolání metody použijeme soubor .exe v tomto releasu, která tyto metody modulárně vyvolává. A to ve formátu nejčastěji (zatím rozhodně) v CLI (Command Line Interface):
             ```pwsh
-            .\statistika.exe -m METODA [-i CESTA_K_SOUBORU]
+            .\statistika.exe METODA [-i CESTA_K_SOUBORU]
             ```
 
             Pro každou metodu volíme jeho název pro argument `METODA`, tedy první argument v listu, tedy to co je tučně vyznačené, např.: chci aritmetický průměr tak název metody je aritmeticky_prumer.
@@ -139,10 +182,10 @@ jobs:
 
             #### Příklad
             ```pwsh
-            .\statistika.exe -m aritmeticky_prumer -i input/KARL.txt
+            .\statistika.exe  aritmeticky_prumer -i input/KARL.txt
             ```
             ```bash
-            ./statistika_linux -m aritmeticky_prumer -i input/KARL.txt
+            ./statistika_linux aritmeticky_prumer -i input/KARL.txt
             ```
 
             ### 🔐 Instalace certifikátu:

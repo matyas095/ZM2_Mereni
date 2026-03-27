@@ -1,6 +1,6 @@
 import unittest;
 import os;
-from statisticke_vypracovani.aritmeticky_prumer import try_convert;
+from statisticke_vypracovani.aritmeticky_prumer.logic import try_convert;
 
 # TO RUN TEST DO: python -m unittest discover tests
 

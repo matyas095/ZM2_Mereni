@@ -65,4 +65,5 @@ python3 main.py -m aritmeticky_prumer -i input/KARL.txt
 Všechny výpočty dělány ručně (kalkulátor incident)
 
 ### Měření 8 - Velké odpory, Wheastonův můstek (Obilíkámen můstek)
-- 
+- Zapsány python skripty na grafické vyrovnání a zobrazení všech grafů
+- Skripty vypíšou hodnoty všech rezistorů pomocí početně

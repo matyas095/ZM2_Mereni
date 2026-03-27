@@ -23,8 +23,9 @@ jobs:
 
       - name: Install Build Tools
         run: |
-          sudo apt-get update && sudo apt-get install -y osslsigncode zip
-          pip install pyinstaller numpy requests
+          sudo apt-get update && sudo apt-get install -y osslsigncode zip python3-tk
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Build Linux Binary
         run: |
@@ -34,7 +35,9 @@ jobs:
       - name: Build Windows EXE
         run: |
           docker run --rm -v "$(pwd):/src" cdrx/pyinstaller-windows \
-          "pip install numpy requests && pyinstaller --onefile --icon builder/app_icon.ico --name statistika --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py"
+          "if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && \
+          pip install pyinstaller && \
+          pyinstaller --onefile --icon builder/app_icon.ico --name statistika --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py"
 
       - name: Sign Windows EXE
         run: |
@@ -42,6 +45,7 @@ jobs:
           osslsigncode sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" \
           -n "Statistika Tool ${{ github.ref_name }}" -t http://timestamp.digicert.com \
           -in dist/statistika.exe -out dist/statistika_${{ github.ref_name }}_signed.exe
+          rm cert.pfx
 
       - name: Package Assets
         run: |

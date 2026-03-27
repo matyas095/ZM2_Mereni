@@ -39,11 +39,18 @@ fi
 mkdir -p "$SCRIPT_DIR/dist" "$SCRIPT_DIR/build" "$SCRIPT_DIR/release"
 
 echo "--- 🐧 Building Linux Binary ($VERSION) ---"
+# 1. Ensure requirements are actually installed in the venv
+"$PROJECT_ROOT/.venv/bin/pip" install -r "$PROJECT_ROOT/requirements.txt"
 "$PROJECT_ROOT/.venv/bin/python" -m PyInstaller --onefile --noconfirm \
---workpath "$SCRIPT_DIR/build" --distpath "$SCRIPT_DIR/dist" \
---name "${EXE_NAME}_${VERSION}_linux" \
---add-data "$PROJECT_ROOT/statisticke_vypracovani:statisticke_vypracovani" \
---hidden-import "numpy" "$PROJECT_ROOT/main.py"
+    --workpath "$SCRIPT_DIR/build" --distpath "$SCRIPT_DIR/dist" \
+    --name "${EXE_NAME}_${VERSION}_linux" \
+    --add-data "$PROJECT_ROOT/statisticke_vypracovani:statisticke_vypracovani" \
+    --add-data "$PROJECT_ROOT/utils.py:." \
+    --add-data "$PROJECT_ROOT/get_requirements.py:." \
+    --collect-all numpy \
+    --collect-all scipy \
+    --collect-all matplotlib \
+    "$PROJECT_ROOT/main.py"
 
 echo "--- Building Windows EXE ($VERSION) ---"
 if [ -f "$ICON_PATH" ]; then 
@@ -52,7 +59,16 @@ if [ -f "$ICON_PATH" ]; then
 fi
 
 docker run --rm -v "$PROJECT_ROOT:/src" cdrx/pyinstaller-windows \
-"pip install numpy requests && pyinstaller --onefile $ICON_STR --name ${EXE_NAME} --add-data 'statisticke_vypracovani;statisticke_vypracovani' main.py --hidden-import \"tkinter\" --hidden-import \"tkinter.filedialog\""
+    "pip install -r requirements.txt && \
+    pip install pyinstaller && \
+    pyinstaller --onefile $ICON_STR --name ${EXE_NAME} \
+    --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
+    --add-data 'utils.py;.' \
+    --add-data 'get_requirements.py;.' \
+    --collect-all numpy \
+    --collect-all scipy \
+    --collect-all matplotlib \
+    main.py"
 
 mv "$PROJECT_ROOT/dist/${EXE_NAME}.exe" "$SCRIPT_DIR/dist/" 2>/dev/null
 

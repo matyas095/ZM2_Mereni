@@ -1,9 +1,19 @@
 from .logic import run;
+import json;
 
 def get_args_info():
     """Returns a list of dictionaries defining the arguments for this module.""";
     return [
-        
+        {
+            "flags": ["-r", "--rovnice"],
+            "help": "Specifikace rovnice pokud chybí",
+            "type": str
+        },
+        {
+            "flags": ["-k", "--konstanty"],
+            "help": "Dospecifikuje konstanty, mimo input file. Ve tvaru dict: '{ \"KEY\": ... }'",
+            "type": json.loads
+        }
     ];
 
 """

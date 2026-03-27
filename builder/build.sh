@@ -46,7 +46,8 @@ echo "--- 🐧 Building Linux Binary ($VERSION) ---"
     --name "${EXE_NAME}_${VERSION}_linux" \
     --add-data "$PROJECT_ROOT/statisticke_vypracovani:statisticke_vypracovani" \
     --add-data "$PROJECT_ROOT/utils.py:." \
-    --add-data "$PROJECT_ROOT/get_requirements.py:." \
+    --hidden-import "sympy.parsing.latex" \
+    --collect-all sympy \
     --collect-all numpy \
     --collect-all scipy \
     --collect-all matplotlib \
@@ -60,11 +61,12 @@ fi
 
 docker run --rm -v "$PROJECT_ROOT:/src" cdrx/pyinstaller-windows \
     "pip install -r requirements.txt && \
-    pip install pyinstaller && \
+    pip install antlr4-python3-runtime && \
     pyinstaller --onefile $ICON_STR --name ${EXE_NAME} \
     --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
     --add-data 'utils.py;.' \
-    --add-data 'get_requirements.py;.' \
+    --hidden-import 'sympy.parsing.latex' \
+    --collect-all sympy \
     --collect-all numpy \
     --collect-all scipy \
     --collect-all matplotlib \

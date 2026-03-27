@@ -40,7 +40,7 @@ def try_convert(s):
         except ValueError:
             return s;
 
-def run(args, noPrint = True):
+def run(args, doPrint = True):
     if(isinstance(args, dict)):
         result = [
             [group, [try_convert(sub) for sub in args[group]]]
@@ -60,7 +60,7 @@ def run(args, noPrint = True):
             PROMENA = np.array(result, dtype=object);   # arr[:, 0] - získá všechny klíče (před =);
                                                         # arr[0, 1] - ziská první data v prvním řádku inputu
 
-    if(not noPrint): print(f"Zpracovávám údaje pro hodnoty {", ".join(PROMENA[:, 0])}");
+    if(doPrint): print(f"Zpracovávám údaje pro hodnoty {", ".join(PROMENA[:, 0])}");
 
     toPrint = {};
 
@@ -73,7 +73,7 @@ def run(args, noPrint = True):
         sigma_sum_Data = math.sqrt( odchylka / (len(data)*(len(data) - 1)));
         toPrint[key] = [sum_Data, sigma_sum_Data];
  
-    if(not noPrint): 
+    if(doPrint): 
         for key, arr in toPrint.items():
             print(color_print.BOLD + key + color_print.END);
 

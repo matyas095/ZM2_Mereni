@@ -1,4 +1,8 @@
+re
 numpy
-scipy
 requests
+scipy
+sympy
 matplotlib
+pandas
+antlr4-python3-runtime==4.11

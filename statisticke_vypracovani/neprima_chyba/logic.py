@@ -9,7 +9,9 @@ import re;
 import json;
 from utils import color_print, return_Cislo_Krat_10_Na;
 from statisticke_vypracovani.aritmeticky_prumer.logic import run as aritm_Run;
-import inspect;
+
+import pandas as pd;
+
 
 def safe_float_convert(value_str, key_name):
     try:
@@ -31,10 +33,9 @@ def extract_variables(formula_str, toIgnore = []):
     
     return sorted(list(set(variables))); # sorted(..)
 
-def derivace(data):
+def derivace(data, aritmety = None):
     resulte = [];
-    # print(json.dumps(data, indent=4))
-    print(data["FUNKCE"])
+    if(not aritmety): aritmety = aritm_Run(data["ELEMENTY"], False);
     for name_rce, v in data["FUNKCE"].items():
         rce = v;
         variables = None;
@@ -50,7 +51,7 @@ def derivace(data):
         except Exception as e:
             raise Exception(e);
     
-        if(len(set(extract_variables(rce, list(funkcni_konstanty))) - set(data["ELEMENTY"].keys())) > 0): raise Exception(f"Chybí mi data v 'ELEMENTY' a to:\n {color_print.BOLD}{"\n ".join(set(variables) - set(data["ELEMENTY"].keys()))}")
+        if(len(set(extract_variables(rce, list(local_const_dict))) - set(data["ELEMENTY"].keys())) > 0): raise Exception(f"Chybí mi data v 'ELEMENTY' a to:\n {color_print.BOLD}{"\n ".join(set(variables) - set(data["ELEMENTY"].keys()))}")
         
         sym_map = { name: symbols(name) for name in variables };
         y = parse_expr(rce, local_dict=sym_map); # type: ignore
@@ -60,14 +61,13 @@ def derivace(data):
         variablesNEW = variables + list(local_const_dict.keys());
 
         f = lambdify(variablesNEW, derivatives, 'numpy');
-        aritmety = aritm_Run(data["ELEMENTY"], True);
 
         chyby = [x for x in aritmety.keys()];
 
         sorted_keys = sorted(aritmety.keys());
 
         test = [[aritmety[k][0]] for k in sorted_keys] + \
-                [[local_const_dict[n][0]] for n in variablesNEW if n in local_const_dict] + \
+                [[local_const_dict[n]] for n in variablesNEW if n in local_const_dict] + \
                 [[aritmety[k][-1]] for k in sorted_keys]; # funkční btw
         
         for val in zip(*test): # type: ignore
@@ -102,7 +102,13 @@ def universal_indent_mapper(input_path):
             if "=" in clean_line:
                 key, val = [x.strip() for x in clean_line.split("=", 1)];
                 try:
-                    processed_val = [float(x.strip()) for x in val.split(",") if x.strip()];
+                    # processed_val = [float(x.strip()) for x in val.split(",") if x.strip()];
+                    parts = [float(x.strip()) for x in val.split(",") if x.strip()];
+        
+                    if len(parts) == 1:
+                        processed_val = parts[0];
+                    else:
+                        processed_val = parts;
                 except ValueError:
                     processed_val = val;
             else:
@@ -139,19 +145,48 @@ def get__value__(funkce_dict, key):
     if isinstance(entry, dict): return entry.get("__value__");
     return entry;
 
+def xlsxExtension(args):
+    if(not args.rovnice): raise ValueError("Chybí tag -r [--rovnice] pro rovnici, pro soubor .xlsx.");
+    if("=" not in args.rovnice): raise ValueError("V rovnici [-r; --rovnice] chybí oddělovač =; Mějte formát VELIČINA=ROVNICE")
+
+    try:
+        nazev_rce, rce = args.rovnice.split("=");
+    except Exception as e:
+        raise ValueError("Chyba v rovnice [-r; --rovnice]");
+
+    df = pd.read_excel(args.input).dropna(how='all');
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')];
+
+    keys = df.columns.tolist();
+    return derivace(
+        { 
+            "FUNKCE": { 
+                nazev_rce: {
+                    "__value__": rce,
+                    **( { "FUNC_KONSTANTY": args.konstanty } if args.konstanty else {} )
+                } 
+            },
+            "ELEMENTY": {
+                key: df[key].astype(float).tolist() for key in keys
+            }
+        },
+        { 
+            key: [
+                df[key].mean(),
+                df[key].std() / np.sqrt(len(df))
+            ] for key in keys 
+        }
+    );
+    
+
 def run(args):
-    if(type(args) == str): inputFile = args;
-
-    PROMENA = cleanup_structure(universal_indent_mapper(inputFile)); # type: ignore
-
-
-    return derivace(PROMENA);
-    print(json.dumps(PROMENA, indent=4));
-
-    # Testy jestli oukej
-    if(PROMENA["TO_GET"] not in PROMENA["FUNKCE"]): raise KeyError(f"Žádná funkce pro {PROMENA['TO_GET']}");
-
-    return PROMENA;
+    match args.input:
+        case name if(name.endswith(".xlsx")):
+            xlsxExtension(args);
+        
+        case _:
+            bengr = cleanup_structure(universal_indent_mapper(args.input));
+            return derivace(cleanup_structure(universal_indent_mapper(args.input)));
 
 if __name__ == "__main__":
-    run("statisticke_vypracovani/neprima_chyba/input/input_aritm_prumer");
+    run("e");

@@ -10,10 +10,6 @@ else:
 
 sys.path = [BASE_DIR, os.path.join(BASE_DIR, "statisticke_vypracovani")] + sys.path;
 
-if getattr(sys, 'frozen', False):
-    print(f"DEBUG: Bundle Root: {BASE_DIR}")
-    print(f"DEBUG: Root files: {os.listdir(BASE_DIR)}")
-
 import requests;
 import webbrowser;
 from tkinter import messagebox;
@@ -27,7 +23,7 @@ def version_to_tuple(v):
     return tuple(map(int, (v.split("."))));
 
 def check_for_updates():
-    headers = {'User-Agent': 'MyPythonApp-Updater'};
+    headers = {'User-Agent': 'StatistikaApp-Updater'};
     
     try:
         response = requests.get(VERSION_URL, headers=headers, timeout=5);
@@ -45,8 +41,8 @@ def check_for_updates():
 
             if version_to_tuple(remote_v) > version_to_tuple(local_v):
                 print(f"🚀 Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{url}");
-            else:
-                print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}");
+            else: pass
+                # print(f"✅ Up to date. Local: {local_v}, Remote: {remote_v}");
                 
         elif response.status_code == 404:
             print("ℹ️ No releases found yet. Pushing v0.3 via deploy.sh will fix this.");
@@ -126,8 +122,8 @@ def CLI_Handler(args):
                     if is_required:
                         while not user_val:
                             user_val = input(f"{prompt} (!!REQUIRED!!): ").strip();
-                    else:
-                        user_val = input(f"Zadejte {prompt} (volitelné): ").strip();
+                    """else:
+                        user_val = input(f"Zadejte {prompt} (volitelné): ").strip();"""
 
                     if user_val != "":
                         arg_type = extra.get('type', str);
@@ -172,8 +168,9 @@ def main():
             print(f"Chybný formát vro dat: {message}");
             sys.exit(1);
 
+    result = method_module.run(args);
     try:
-        result = method_module.run(args);
+        # result = method_module.run(args);
     
         if getattr(args, 'save', False) and result:
             with open(f"vysledek_{args.method}.txt", "w") as f:

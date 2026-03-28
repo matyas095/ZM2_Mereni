@@ -10,7 +10,6 @@ permissions:
   contents: write
 
 jobs:
-  # --- JOB PRO LINUX ---
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -66,7 +65,6 @@ jobs:
           name: linux-artifact
           path: statistika_${{ github.ref_name }}_linux.tar.gz
 
-  # --- JOB PRO WINDOWS (Nativní Python 3.12) ---
   build-windows:
     runs-on: windows-latest
     steps:
@@ -86,7 +84,6 @@ jobs:
 
       - name: Build Windows EXE
         run: |
-          # Na Windows používáme u --add-data středník ;
           pyinstaller --onefile --noconfirm --clean `
           --icon builder/app_icon.ico --name statistika `
           --add-data "statisticke_vypracovani;statisticke_vypracovani" `
@@ -103,10 +100,10 @@ jobs:
       - name: Sign EXE
         shell: pwsh
         run: |
-          # Instalace nástroje pro signování na Windows
           choco install osslsigncode -y
-          [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}") | Set-Content cert.pfx -Encoding Byte
-          & "C:\ProgramData\chocolatey\bin\osslsigncode.exe" sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" `
+          $certBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
+          Set-Content -Path cert.pfx -Value $certBytes -AsByteStream
+          osslsigncode sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" `
           -n "Statistika Tool ${{ github.ref_name }}" -t http://timestamp.digicert.com `
           -in dist/statistika.exe -out dist/statistika_${{ github.ref_name }}_signed.exe
           Remove-Item cert.pfx
@@ -129,7 +126,6 @@ jobs:
           name: windows-artifact
           path: statistika_${{ github.ref_name }}_windows.zip
 
-  # --- JOB PRO VYTVOŘENÍ RELEASE ---
   create-release:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest

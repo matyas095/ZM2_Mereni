@@ -32,9 +32,11 @@ jobs:
           pyinstaller --onefile --noconfirm \
           --name statistika_${{ github.ref_name }}_linux \
           --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --add-data 'utils.py:.' \
           --collect-all sympy \
           --collect-all matplotlib \
           --collect-all scipy \
+          --collect-all scikit-learn \
           --hidden-import sympy.parsing.latex \
           --hidden-import matplotlib.backends.backend_tkagg \
           main.py
@@ -54,10 +56,17 @@ jobs:
           --exclude-module _tkinter \
           --exclude-module IPython \
           --exclude-module notebook \
+          --exclude-module test \
+          --exclude-module tests \
+          --exclude-module numpy.tests \
+          --exclude-module scipy.tests \
+          --exclude-module matplotlib.tests \
+          --exclude-module sklearn.tests \
           --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
           --collect-all sympy \
           --collect-all matplotlib \
           --collect-all scipy \
+          --collect-all scikit-learn \
           --hidden-import sympy.parsing.latex \
           main.py"
 

@@ -60,7 +60,7 @@ def run(args, doPrint = True):
             PROMENA = np.array(result, dtype=object);   # arr[:, 0] - získá všechny klíče (před =);
                                                         # arr[0, 1] - ziská první data v prvním řádku inputu
 
-    if(doPrint): print(f"Zpracovávám údaje pro hodnoty {", ".join(PROMENA[:, 0])}");
+    if(doPrint): print(f"Zpracovávám údaje pro hodnoty {', '.join(PROMENA[:, 0])}");
 
     toPrint = {};
 

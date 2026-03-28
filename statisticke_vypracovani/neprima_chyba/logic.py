@@ -49,7 +49,7 @@ def derivace(data, aritmety = None):
         except Exception as e:
             raise Exception(e);
     
-        if(len(set(extract_variables(rce, list(local_const_dict))) - set(data["ELEMENTY"].keys())) > 0): raise Exception(f"Chybí mi data v 'ELEMENTY' a to:\n {color_print.BOLD}{"\n ".join(set(variables) - set(data["ELEMENTY"].keys()))}")
+        if(len(set(extract_variables(rce, list(local_const_dict))) - set(data["ELEMENTY"].keys())) > 0): raise Exception(f"Chybí mi data v 'ELEMENTY' a to:\n{color_print.BOLD}{'\n'.join(set(variables) - set(data["ELEMENTY"].keys()))}")
         
         sym_map = { name: symbols(name) for name in variables };
         y = parse_expr(rce, local_dict=sym_map); # type: ignore

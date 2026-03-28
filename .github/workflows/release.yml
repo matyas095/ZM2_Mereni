@@ -21,6 +21,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Set up Git Author
+        run: |
+          git config --global user.name "matyas095"
+          git config --global user.email "matyas.kutaj@gmail.com"
+
       - name: Install Build Tools
         run: |
           sudo apt-get update && sudo apt-get install -y osslsigncode zip python3-tk
@@ -63,6 +68,7 @@ jobs:
           --exclude-module matplotlib.tests \
           --exclude-module sklearn.tests \
           --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
+          --add-data 'utils.py:.' \
           --collect-all sympy \
           --collect-all matplotlib \
           --collect-all scipy \
@@ -212,7 +218,7 @@ jobs:
             statistika_${{ github.ref_name }}_windows.zip
             statistika_${{ github.ref_name }}_linux.tar.gz
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN_MAT }}
 
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1

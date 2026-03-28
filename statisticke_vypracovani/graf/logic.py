@@ -265,7 +265,7 @@ def run(args):
     folder_path = Path(dir_name).resolve();
     folder_path.mkdir(parents=True, exist_ok=True);
 
-    print(f"Zpracovávám údaje pro hodnoty {", ".join(PROMENA[:, 0])}");
+    print(f"Zpracovávám údaje pro hodnoty {', '.join(PROMENA[:, 0])}");
     return prep_Plot(PROMENA, args, str(folder_path));
 
     toPrint = {};

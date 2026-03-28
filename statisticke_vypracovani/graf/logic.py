@@ -3,11 +3,13 @@ from utils import get_Promeny, color_print, return_Cislo_Krat_10_Na, extract_var
 import numpy as np;
 import matplotlib.pyplot as plt;
 from scipy.optimize import curve_fit;
+from sklearn.metrics import r2_score;
 import math;
 from pathlib import Path;
 from sympy import symbols, lambdify, latex, log;
 from sympy.parsing.sympy_parser import parse_expr;
 from sympy.parsing.latex import parse_latex;
+from statisticke_vypracovani.aritmeticky_prumer.logic import run as aritm_Run;
 
 def clean_latex(text):
     if not isinstance(text, str):
@@ -155,18 +157,80 @@ def args_Rovnice(PROMENA, args, pathToDir):
     print(f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{args.name}{color_print.END} a rovnicí {color_print.UNDERLINE}{nazev_rovnice}={rovnice}{color_print.END} \
           se uložil do souboru:\n└──{pathToDir}/{args.name}.svg");
 
+def linear(x, a, b): return a * x + b;
+def quadratic(x, a, b, c): return a * x**2 + b * x + c;
+def exponential(x, a, b): return a * np.exp(b / x);
+def power_law(x, a, b): return a * x**b;
+
+def najdi_nejlepsi_fit(x, y):
+    modely = {
+        "Lineární": linear,
+        "Kvadratický": quadratic,
+        "Exponenciální": exponential,
+        "Mocninný": power_law
+    }
+    
+    vysledky = {}
+    
+    for jmeno, func in modely.items():
+        try:
+            # p0 jsou počáteční odhady, pro expo/mocninné důležité
+            popt, _ = curve_fit(func, x, y, maxfev=2000)
+            y_pred = func(x, *popt)
+            score = r2_score(y, y_pred)
+            vysledky[jmeno] = (score, popt, func)
+        except:
+            continue # Pokud fit neskonverguje, přeskočíme ho
+
+    # Vybere model s nejvyšším R^2
+    nejlepsi = max(vysledky, key=lambda k: vysledky[k][0])
+    return nejlepsi, vysledky[nejlepsi]
+
 def prep_Plot(PROMENA, args, pathToDir, ignoreRovnice = False):
     if(args.rovnice and not ignoreRovnice): 
         out = args_Rovnice(PROMENA, args, pathToDir);
-        # e = args_Rovnice_2D_Slice(PROMENA, args, pathToDir, fix_var='y');
         return;
 
-    x_vals = PROMENA[0, 1];
+    x_Range = np.array(PROMENA[0, 1]);
     x_key = PROMENA[0, 0];
-    x_Range = np.linspace(min(x_vals), max(x_vals), 1000);
-    y_vals = PROMENA[1, 1];
+    y_Range = np.array(PROMENA[1, 1]);
     y_key = PROMENA[1, 0];
-    y_Range = np.linspace(min(y_vals), max(y_vals), 1000);
+
+    if(args.logaritmicky and args.fit):
+        modely_fitu = {
+            "linearni": linear,
+            "kvadraticky": quadratic,
+            "exponencialni": exponential,
+            "mocninny": power_law
+        };
+
+        plt.figure(figsize=(9, 6));
+
+        y_Range = np.log(y_Range);
+        aritm = aritm_Run({x_key: x_Range}, False);
+        print(aritm)
+
+        print(najdi_nejlepsi_fit(x_Range, y_Range));
+        print(aritm[x_key][-1])
+
+        popt, pcov = curve_fit(modely_fitu[args.fit], x_Range, y_Range, absolute_sigma=True, sigma=aritm[x_key][-1] / np.array(PROMENA[1, 1]));
+
+        label_text = f"Fit {args.fit}: " + ", ".join([f"${return_Cislo_Krat_10_Na(p)}$" for p in popt]);
+
+        plt.plot(x_Range, modely_fitu[args.fit](x_Range, *popt), 'b-', 
+             label=label_text);
+
+        plt.errorbar(x_Range, y_Range, yerr=aritm[x_key][-1] / np.array(PROMENA[1, 1]), fmt='o', capsize=3, color='darkred', label='Chyba měření');
+        plt.xlabel(f'{x_key}');
+        plt.ylabel(f'{y_key}');
+        plt.title(args.name);
+        plt.legend();
+        plt.grid(alpha=0.3);
+        plt.savefig(f'{pathToDir}/{args.name}.svg', format='svg', bbox_inches='tight');
+        plt.show();
+        plt.close();
+        print(f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{args.name}{color_print.END} se uložil do souboru:\n└──{pathToDir}/{args.name}.svg")
+        return;
 
     # popt, pcov = curve_fit(fit, x, ln_U, sigma=chyba_ln_U, absolute_sigma=True);
 
@@ -187,6 +251,7 @@ def prep_Plot(PROMENA, args, pathToDir, ignoreRovnice = False):
     plt.legend();
     plt.grid(alpha=0.3);
     plt.savefig(f'{pathToDir}/{args.name}.svg', format='svg', bbox_inches='tight');
+    plt.show();
     plt.close();
     print(f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{args.name}{color_print.END} se uložil do souboru:\n└──{pathToDir}/{args.name}.svg")
 

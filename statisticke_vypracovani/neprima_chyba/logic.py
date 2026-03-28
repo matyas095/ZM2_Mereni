@@ -33,7 +33,7 @@ def extract_variables(formula_str, toIgnore = []):
 
 def derivace(data, aritmety = None):
     resulte = [];
-    if(not aritmety): aritmety = aritm_Run(data["ELEMENTY"], False);
+    if(not aritmety): aritmety = aritm_Run(data["ELEMENTY"], False); # { KEY: [...] }
     for name_rce, v in data["FUNKCE"].items():
         rce = v;
         variables = None;

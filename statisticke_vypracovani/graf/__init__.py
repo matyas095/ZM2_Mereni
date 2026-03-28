@@ -25,6 +25,18 @@ def get_args_info():
             "flags": ["-p", "--parametr"],
             "help": "Vypočítá data jako 2D graf dle parametru f(x), funguje jenom s -r [--rovnice]",
             "type": str
+        },
+        {
+            "flags": ["-log", "--logaritmicky"],
+            "help": "Zobrazí y-ovou osu v logaritmickým měřítku",
+            "action": "store_true"
+        },
+        {
+            "flags": ["-f", "--fit"],
+            "help": "Zobrazí y-ovou osu v logaritmickým měřítku",
+            "choices": ["linearni", "kvadraticky", "exponencialni", "mocninny"],
+            "default": None,
+            "required": False
         }
     ];
 

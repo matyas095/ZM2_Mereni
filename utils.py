@@ -68,7 +68,7 @@ def get_Promeny(args):
 
     Example
     -------
-    >>> get_Promeny(args);
+    >>> get_Promeny(input);
     """
     with open(args.input) as f:
         result = [

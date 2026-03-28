@@ -122,7 +122,7 @@ def return_FirstWord(str):
     return None;
 
 def contains_substring(str, array):
-    regex = rf"^({"|".join(array)})";
+    regex = rf"^({'|'.join(array)})";
     var = re.search(regex, str);
     if var: return True;
     

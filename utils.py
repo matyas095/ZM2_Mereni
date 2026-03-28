@@ -3,6 +3,7 @@ import numpy as np;
 import math;
 import os;
 import sys;
+import re;
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS; # type: ignore
@@ -87,3 +88,42 @@ def return_Cislo_Krat_10_Na(x):
     zaklad = x / 10**exponent;
 
     return f"{zaklad:.3f} * 10^{exponent}";
+
+def extract_variables(formula_str, toIgnore = []):
+    ignored_functions = ['log', 'ln', 'sin', 'cos', 'tan', 'exp', 'sqrt', 'abs'] + toIgnore;
+    
+    # 2. The Regex:
+    # \b(?![0-9])        -> Must be a word boundary, NOT starting with a digit
+    # (?!log|sin|...)    -> Negative lookahead: skip these specific words
+    # [a-zA-Z_][a-zA-Z0-9_]* -> Match standard variable names (start with letter/underscore)
+    ignore_pattern = r'\b(?:' + '|'.join(ignored_functions) + r')\b';
+    regex_pattern = rf'\b(?!{ignore_pattern}|[0-9])[a-zA-Z_][a-zA-Z0-9_]*\b';
+
+    variables = re.findall(regex_pattern, formula_str);
+    
+    return list(variables); # sorted(..)
+
+def extract_latex_logic(cli_input):
+    # Odstranění uvozovek, které tam někdy zbudou z CLI
+    clean_input = cli_input.strip("'\"")
+    
+    # Pokud chceš jen vnitřek \frac{A}{B} -> (A)/(B) pro výpočet bez SymPy parseru:
+    # (Tohle je jen nouzové řešení pomocí regexu)
+    logic = re.sub(r'\\frac\{(.+?)\}\{(.+?)\}', r'(\1)/(\2)', clean_input)
+    logic = logic.replace(r'\Omega', 'Omega')
+    
+    return logic
+
+def return_FirstWord(str):
+    regex = rf"^\w"
+    var = re.search(regex, str);
+    if var: return var.group();
+
+    return None;
+
+def contains_substring(str, array):
+    regex = rf"^({"|".join(array)})";
+    var = re.search(regex, str);
+    if var: return True;
+    
+    return False;

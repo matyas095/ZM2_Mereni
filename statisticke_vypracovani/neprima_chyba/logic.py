@@ -1,12 +1,10 @@
 import math;
-from sympy import symbols, log, lambdify, Matrix;
+from sympy import symbols, lambdify;
 from sympy.parsing.sympy_parser import parse_expr;
 from sympy.parsing.latex import parse_latex;
 import numpy as np;
-import matplotlib.pyplot as plt;
 import math;
 import re;
-import json;
 from utils import color_print, return_Cislo_Krat_10_Na;
 from statisticke_vypracovani.aritmeticky_prumer.logic import run as aritm_Run;
 

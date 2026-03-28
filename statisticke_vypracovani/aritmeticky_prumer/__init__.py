@@ -3,7 +3,12 @@ from .logic import run;
 def get_args_info():
     """Returns a list of dictionaries defining the arguments for this module.""";
     return [
-        
+        {
+            "flags": ["-i", "--input"],
+            "help": "Cesta k vstupnímu souboru s daty",
+            "required": True,
+            "is_file": True
+        }
     ];
 
 """

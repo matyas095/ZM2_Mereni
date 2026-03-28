@@ -4,7 +4,7 @@ import argparse;
 import importlib;
 
 if getattr(sys, 'frozen', False):
-    BASE_DIR = sys._MEIPASS;
+    BASE_DIR = sys._MEIPASS; # type: ignore
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__));
 
@@ -52,87 +52,109 @@ def get_base_path():
         return sys._MEIPASS; # type: ignore
     return os.path.dirname(os.path.abspath(__file__));
 
-"""base_dir = get_base_path();
-if base_dir not in sys.path:
-    sys.path.insert(0, base_dir)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs'));"""
-
 def get_available_methods():
-    # Use the BASE_DIR we defined at the top
-    folder = os.path.join(BASE_DIR, "statisticke_vypracovani")
+    folder = os.path.join(BASE_DIR, "statisticke_vypracovani");
     if not os.path.exists(folder):
-        return []
+        return [];
     return [
         d for d in os.listdir(folder)
         if os.path.isdir(os.path.join(folder, d)) and not d.startswith(("_", "."))
-    ]
+    ];
 
 def CLI_Handler(args):
     if not args.method:
-        print("Statistika Tůl - Interaktivní režim");
-        print("---------------------------------------");
-        methods = get_available_methods();
-        print(f"Dostupné metody: {', '.join(methods)}");
-        selected = "";
+        print("Statistika Tůl - Interaktivní režim")
+        print("---------------------------------------")
+        methods = get_available_methods()
+        print(f"Dostupné metody: {', '.join(methods)}")
+        selected = ""
         while selected not in methods:
-            selected = input("Zadejte metodu: ").strip();
-        args.method = selected;
+            selected = input("Zadejte metodu: ").strip()
+        args.method = selected
 
-    module_path = f"statisticke_vypracovani.{args.method}";
-    method_module = importlib.import_module(module_path);
-
-    if not getattr(args, 'input', None):
-        from tkinter import filedialog, Tk;
-        root = Tk();
-        root.withdraw();
-        print(f"[{args.method}] Vyberte vstupní soubor...");
-        args.input = filedialog.askopenfilename(title="Vyberte soubor s daty");
-        root.destroy();
-        
-        if not args.input:
-            args.input = input("Vložte cestu k souboru ručně: ").strip().replace('"', '').replace("'", "");
+    module_path = f"statisticke_vypracovani.{args.method}"
+    method_module = importlib.import_module(module_path)
 
     if hasattr(method_module, "get_args_info"):
         for original_extra in method_module.get_args_info():
-            extra = original_extra.copy();
-            dest = extra['flags'][-1].lstrip('-').replace('-', '_');
+            extra = original_extra.copy()
+            # Convert flags like ['-i', '--input'] to 'input'
+            dest = extra['flags'][-1].lstrip('-').replace('-', '_')
             
-            is_boolean = extra.get("action") in ["store_true", "store_false"];
-            current_val = getattr(args, dest, None);
+            current_val = getattr(args, dest, None)
 
             if current_val is None:
-                prompt = extra.get('help', dest);
-                is_required = extra.get("required", False);
+                prompt = extra.get('help', dest)
+                is_required = extra.get("required", False)
 
-                if is_boolean:
-                    choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip();
-                    setattr(args, dest, choice == 'y');
-                else:
-                    default = extra.get('default', None);
+                # --- 1. HANDLE FILE PICKER ---
+                if extra.get("is_file") and is_required:
+                    from tkinter import filedialog, Tk
+                    root = Tk()
+                    root.withdraw()
+                    print(f"[{args.method}] Vyberte {prompt}...")
+                    picked_path = filedialog.askopenfilename(title=prompt)
+                    root.destroy()
                     
-                    if not is_required and default is not None:
-                        setattr(args, dest, default);
-                        continue;
-
-                    user_val = "";
-                    if is_required:
-                        while not user_val:
-                            user_val = input(f"{prompt} (!!REQUIRED!!): ").strip();
-                    """else:
-                        user_val = input(f"Zadejte {prompt} (volitelné): ").strip();"""
-
-                    if user_val != "":
-                        arg_type = extra.get('type', str);
-                        setattr(args, dest, arg_type(user_val));
+                    if picked_path:
+                        setattr(args, dest, picked_path)
                     else:
-                        setattr(args, dest, default);
+                        user_val = input(f"Vložte cestu k {dest} ručně: ").strip().replace('"', '').replace("'", "")
+                        setattr(args, dest, user_val if user_val else None)
+                    
+                    # File is handled, move to next argument
+                    continue 
 
-    if not os.path.isfile(args.input):
-        print(f"Error: Soubor '{args.input}' nebyl nalezen.");
-        if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
-        sys.exit(1);
+                # --- 2. HANDLE BOOLEANS ---
+                is_boolean = extra.get("action") in ["store_true", "store_false"]
+                if is_boolean and current_val is True:
+                    continue
 
-    return method_module;
+                if current_val is None or (is_boolean and current_val is False):
+                    prompt = extra.get('help', dest)
+                    is_required = extra.get("required", False)
+
+                    # Pokud nejsme v čistě interaktivním režimu (nějaké args už máme), 
+                    # tak se na nepovinné booleany neptej
+                    if is_boolean and not is_required:
+                        # Pokud uživatel zadal aspoň něco (třeba -i), 
+                        # předpokládáme, že zbytek flagů nechtěl
+                        if any(vars(args).values()): 
+                            continue
+
+                    # ... zbytek tvé logiky (file picker, atd.) ...
+
+                    if is_boolean:
+                        choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip()
+                        setattr(args, dest, choice == 'y')
+                        continue
+
+                # --- 3. HANDLE REGULAR INPUTS ---
+                default = extra.get('default', None)
+                if not is_required and default is not None:
+                    setattr(args, dest, default)
+                    continue
+
+                user_val = ""
+                if is_required:
+                    while not user_val:
+                        user_val = input(f"{prompt} (!!REQUIRED!!): ").strip()
+                
+                if user_val != "":
+                    arg_type = extra.get('type', str)
+                    setattr(args, dest, arg_type(user_val))
+                else:
+                    setattr(args, dest, default)
+
+    # --- FINAL VALIDATION ---
+    # We check the 'input' attribute only if it exists, otherwise check specific files
+    file_to_check = getattr(args, 'input', None)
+    if file_to_check and not os.path.isfile(file_to_check):
+        print(f"❌ Error: Soubor '{file_to_check}' nebyl nalezen.")
+        if getattr(sys, 'frozen', False): input("Stiskněte Enter...")
+        sys.exit(1)
+
+    return method_module
 
 def main():
     parser = argparse.ArgumentParser(description="Statistické nástroje");
@@ -143,35 +165,49 @@ def main():
     methods = get_available_methods();
     for m_name in methods:
         sub_parser = subparsers.add_parser(m_name, help=f"Nástroj: {m_name}");
-        
-        sub_parser.add_argument("-i", "--input", help="Cesta k souboru");
 
         try:
             module = importlib.import_module(f"statisticke_vypracovani.{m_name}");
             if hasattr(module, "get_args_info"):
                 for arg in module.get_args_info():
-                    flags = arg.pop("flags");
-                    sub_parser.add_argument(*flags, **arg);
+                    arg_to_add = arg.copy();
+                    
+                    flags = arg_to_add.pop("flags");
+                    
+                    if "is_file" in arg_to_add:
+                        arg_to_add.pop("is_file");
+                    
+                    arg_to_add["required"] = False;
+
+                    sub_parser.add_argument(*flags, **arg_to_add);
+                    
         except Exception as e:
             print(f"Nepodařilo se načíst extra parametry pro {m_name}: {e}");
 
     args = parser.parse_args();
+    
     method_module = CLI_Handler(args);
 
-    if hasattr(method_module, "validate"):
-        is_valid, message = method_module.validate(args.input);
+    current_input = getattr(args, 'input', None);
+    if current_input and hasattr(method_module, "validate"):
+        pass
+        """is_valid, message = method_module.validate(current_input);
         if not is_valid:
-            print(f"Chybný formát vro dat: {message}");
-            sys.exit(1);
+            print(f"Chybný formát dat: {message}");
+            if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
+            sys.exit(1);"""
 
+    result = method_module.run(args);
     try:
-        result = method_module.run(args);
+        # result = method_module.run(args);
     
         if getattr(args, 'save', False) and result:
-            with open(f"vysledek_{args.method}.txt", "w") as f:
+            output_file = f"vysledek_{args.method}.txt"
+            with open(output_file, "w", encoding="utf-8") as f:
                 f.write(str(result))
+            print(f"💾 Výsledek uložen do: {output_file}")
     except Exception as e:
-        print(f"Unexpect error: {e}");
+        print(f"❌ Neočekávaná chyba při běhu: {e}");
 
     if getattr(sys, 'frozen', False):
         print("\n---------------------------------------");

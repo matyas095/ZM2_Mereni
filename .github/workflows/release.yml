@@ -10,7 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # --- JOB PRO LINUX ---
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -21,202 +22,128 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Set up Git Author
-        run: |
-          git config --global user.name "matyas095"
-          git config --global user.email "matyas.kutaj@gmail.com"
-
       - name: Install Build Tools
         run: |
-          sudo apt-get update && sudo apt-get install -y osslsigncode zip python3-tk
+          sudo apt-get update && sudo apt-get install -y zip upx
           pip install pyinstaller
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Build Linux Binary
         run: |
-          pyinstaller --onefile --noconfirm \
+          pyinstaller --onefile --noconfirm --clean \
           --name statistika_${{ github.ref_name }}_linux \
+          --upx-dir /usr/bin \
           --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
           --add-data 'utils.py:.' \
-          --collect-all sympy \
+          --exclude-module IPython --exclude-module notebook \
+          --collect-submodules sympy \
           --collect-all matplotlib \
           --collect-all scipy \
           --collect-all scikit-learn \
           --hidden-import sympy.parsing.latex \
+          --hidden-import sklearn \
           --hidden-import matplotlib.backends.backend_tkagg \
           main.py
 
-      - name: Build Windows EXE
+      - name: Package Linux
         run: |
-          docker run --rm -v "$(pwd):/src" cdrx/pyinstaller-windows \
-          "python -m pip install --upgrade pip && \
-          python -m pip install pyinstaller==5.13.2 antlr4-python3-runtime==4.11 && \
-          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi && \
-          pyinstaller --onefile --noconfirm --icon builder/app_icon.ico --name statistika \
-          --upx-dir /usr/bin \
-          --clean \
-          --exclude-module tkinter \
-          --exclude-module tcl \
-          --exclude-module tk \
-          --exclude-module _tkinter \
-          --exclude-module IPython \
-          --exclude-module notebook \
-          --exclude-module test \
-          --exclude-module tests \
-          --exclude-module numpy.tests \
-          --exclude-module scipy.tests \
-          --exclude-module matplotlib.tests \
-          --exclude-module sklearn.tests \
-          --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
-          --add-data 'utils.py;.' \
-          --collect-all sympy \
-          --collect-all matplotlib \
-          --collect-all scipy \
-          --collect-all scikit-learn \
-          --hidden-import sympy.parsing.latex \
-          main.py"
-
-      - name: Sign Windows EXE
-        run: |
-          echo "${{ secrets.PFX_BASE64 }}" | base64 -d > cert.pfx
-          osslsigncode sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" \
-          -n "Statistika Tool ${{ github.ref_name }}" -t http://timestamp.digicert.com \
-          -in dist/statistika.exe -out dist/statistika_${{ github.ref_name }}_signed.exe
-          rm cert.pfx
-
-      - name: Package Assets
-        run: |
-          cp security/matyas095Gameing_public.crt dist/
-          cat <<EOF > dist/install_trust_windows.bat
-          @echo off
-          net session >nul 2>&1 || (echo ❌ Spusťte jako administrátor! & pause & exit)
-          certutil -addstore -f "Root" "matyas095Gameing_public.crt"
-          echo ✅ Certifikát nainstalován.
-          pause
-          EOF
-          zip -j statistika_${{ github.ref_name }}_windows.zip dist/*_signed.exe dist/*.crt dist/*.bat
-
           cat <<EOF > dist/install_trust_linux.sh
           #!/bin/bash
           if [ "\$EUID" -ne 0 ]; then
-            echo "🔐 Vyžadováno heslo pro instalaci certifikátu..."
             sudo "\$0" "\$@"
             exit \$?
           fi
-
-          echo "⏳ Instaluji certifikát..."
           cp *.crt /usr/local/share/ca-certificates/
           update-ca-certificates
-          echo "✅ Certifikát byl úspěšně přidán do systému!"
           EOF
-          
           chmod +x dist/install_trust_linux.sh
+          cp security/matyas095Gameing_public.crt dist/
+          tar -czf statistika_${{ github.ref_name }}_linux.tar.gz -C dist .
 
-          tar -czf statistika_${{ github.ref_name }}_linux.tar.gz -C dist \
-          statistika_${{ github.ref_name }}_linux \
-          matyas095Gameing_public.crt \
-          install_trust_linux.sh
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifact
+          path: statistika_${{ github.ref_name }}_linux.tar.gz
+
+  # --- JOB PRO WINDOWS (Nativní Python 3.12) ---
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+
+      - name: Build Windows EXE
+        run: |
+          # Na Windows používáme u --add-data středník ;
+          pyinstaller --onefile --noconfirm --clean `
+          --icon builder/app_icon.ico --name statistika `
+          --add-data "statisticke_vypracovani;statisticke_vypracovani" `
+          --add-data "utils.py;." `
+          --exclude-module IPython --exclude-module notebook `
+          --collect-all sympy `
+          --collect-all matplotlib `
+          --collect-all scipy `
+          --collect-all scikit-learn `
+          --hidden-import sympy.parsing.latex `
+          --hidden-import sklearn `
+          main.py
+
+      - name: Sign EXE
+        shell: pwsh
+        run: |
+          # Instalace nástroje pro signování na Windows
+          choco install osslsigncode -y
+          [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}") | Set-Content cert.pfx -Encoding Byte
+          & "C:\ProgramData\chocolatey\bin\osslsigncode.exe" sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" `
+          -n "Statistika Tool ${{ github.ref_name }}" -t http://timestamp.digicert.com `
+          -in dist/statistika.exe -out dist/statistika_${{ github.ref_name }}_signed.exe
+          Remove-Item cert.pfx
+
+      - name: Package Windows
+        run: |
+          copy security\matyas095Gameing_public.crt dist\
+          $batch = @"
+          @echo off
+          net session >nul 2>&1 || (echo Spustte jako administrator! & pause & exit)
+          certutil -addstore -f "Root" "matyas095Gameing_public.crt"
+          pause
+          "@
+          $batch | Out-File -FilePath dist\install_trust_windows.bat -Encoding ascii
+          Compress-Archive -Path dist\*_signed.exe, dist\*.crt, dist\*.bat -DestinationPath statistika_${{ github.ref_name }}_windows.zip
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifact
+          path: statistika_${{ github.ref_name }}_windows.zip
+
+  # --- JOB PRO VYTVOŘENÍ RELEASE ---
+  create-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ github.ref_name }} - Statistické vypracování dat
-          body: |
-            # Statistické vypracování dat ${{ github.ref_name }}
-            ## Metody
-            - **aritmeticky_prumer** - Aritmetický průměr
-
-            ## Statistické zpracování dat
-            Následující seznam má následující strukturu
-            - **název metody** - Napis
-                - Popis
-                - Vstup
-                    - ...
-                - Výstup
-                    - ...
-
-            Lze spustit automatické výpočty jako:
-            - **aritmeticky_prumer** - Aritmetický průměr + Střední kvadratická chyba aritmetického průměru
-                - Výpočet aritmetického průměru spolu se střední kvadratickou chybou
-                - Vstup
-                    - `soubor [txt, -, ...] {r}`
-                        - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jeho struktura je následující: `VELIČINA=DATA` s tím, že pro každou novou veličinu zadáme do nového řádku, příklad níže, nebo [zde](statisticke_vypracovani/aritmeticky_prumer/input/input_aritm_prumer) 
-                            - U_0=2343,234,23423\
-                              I_0=323,234928,1243
-                - Výstup `print ->`
-                    - VELIČINA\
-                    ├──Aritmetický průměr = ČÍSLO\
-                    └──Chyba aritmetického průměru = ČÍSLO
-            - **neprima_chyba** - Nepřímá chyba měření
-              - Vypočítá nepřímou chybu dle zadaného vstahu
-              - Vstup
-                  - `soubor [txt, -, ...] {r}`
-                      - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jeho struktura je následující: `ELEMENTY. ..DATA\FUNKCE ...DATA` s tím, že pro každou novou veličinu zadáme do nového řádku, příklad níže, nebo [zde](statisticke_vypracovani/neprima_chyba/input/input_file) 
-                      - příklad
-                          ```bash
-                          ELEMENTY
-                              t=0, 600, 1200, 1800, 2400, 3000, 3600
-                              U=300, 297, 291, 287, 284, 278, 274
-
-                          FUNKCE
-                              R=t / (C * ln(U_0 / U))
-                                  FUNC_KONSTANTY
-                                      U_0=300
-                                      C=0.000000047
-                          ```
-                  - `soubor Excel [xslx] {r}`
-                      - *Excelový soubor* obsahuje tabulku (jeden list zatím vro) obsahující data do sloupců (nestrukturovanost bude trestána) (jedna tabulka na jeden soubor) je nutné k tomu přidat jednoduché flagy
-                      - `-r [--rovnice] "ROVNICE"`
-                          - Rovnice pro kterou bude nepřímá chyba vypočítaná (zatím textově pak LaTeXově)
-                      - `-k [--konstanty] '{ "PROMĚNNÁ": ČÍSLO }'`
-                          - Přidá konstanty do rovnice
-                      - Příklad zvolání
-                          ```bash
-                          ./statistika_v0.1_linux neprima_chyba -i test.xlsx -r "R=t / (C * ln(U_0 / U))" -k '{"U_0": 300, "C": 0.0000000470}'
-                          ```
-              - Výstup `print ->`
-                  - VELIČINA\
-                  └──__**Chyba**__ = ČÍSLO
-
-            > [!WARNING]
-            > Čísla je NUTNÉ zapsat v . pokud jsou desetinné např.: 34.23, čárka , je pouze jako oddělovač dat.
-
-            ### Vyvolávání metod
-            Pro vyvolání metody použijeme soubor .exe v tomto releasu, která tyto metody modulárně vyvolává. A to ve formátu nejčastěji (zatím rozhodně) v CLI (Command Line Interface):
-            ```pwsh
-            .\statistika.exe METODA [-i CESTA_K_SOUBORU]
-            ```
-
-            Pro každou metodu volíme jeho název pro argument `METODA`, tedy první argument v listu, tedy to co je tučně vyznačené, např.: chci aritmetický průměr tak název metody je aritmeticky_prumer.
-
-            Následně je nutné se zaměřit na vstup, vstupy jsou obecně zadaný a to ve formátu  `OBJEKT [TYP_OBJEKTU] {rwx}`, kde
-            - `OBJEKT` je vstupní objekt, soubor, ...
-            - `[TYP OBJEKTU]` jakej typ je objektu (clueless) např.: .txt, ...
-            - `{rwx}` jsou oprávnění `r` - read (čtení), `w` - write (zápis), `x` - execute (provést), pokud `{rwx}` chybí, tak oprávnění nejsou žádáná
-
-            pro každý vstup platí i určitá struktura, která je popsána pod `OBJEKT`
-
-            > [!IMPORTANT]
-            > Každej vstupní soubor MUSÍ splňovat podmínky vstupu jako vyznačený v listu výše.
-
-            Pro výpis všech metod lze využít příkazu:
-            ```pwsh
-            .\statistika.exe -h
-            ```
-
-            #### Příklad
-            ```pwsh
-            .\statistika.exe  aritmeticky_prumer -i input/KARL.txt
-            ```
-            ```bash
-            ./statistika_linux aritmeticky_prumer -i input/KARL.txt
-            ```
-
-            ### 🔐 Instalace certifikátu:
-            Pro odstranění varování Windows/Linux spusťte přiložený skript `install_trust` jako administrátor.
+          name: Release ${{ github.ref_name }}
           files: |
-            statistika_${{ github.ref_name }}_windows.zip
-            statistika_${{ github.ref_name }}_linux.tar.gz
+            linux-artifact/*.tar.gz
+            windows-artifact/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN_MAT }}
 
@@ -226,8 +153,4 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: ${{ job.status == 'success' && '**Nová verze je tu - masivní zprávy pro nezaměstnané**' || '❌ **Build se nepovedl!**' }}
-          title: "Statistika Tool ${{ github.ref_name }}"
-          description: "Build completed for ${{ github.ref_name }}. Check out the new version on GitHub!"
-          url: "${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
-          color: 0x00ff00
+          content: "Build dokončen pro verzi ${{ github.ref_name }} (Python 3.12 nativně)"

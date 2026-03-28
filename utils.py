@@ -31,7 +31,7 @@ def APPEND_ARR_NUMPY(arr: np.ndarray, val):
 
     Example
     -------
-    >>> APPEND_ARR_NUMPY(array, 3);
+    APPEND_ARR_NUMPY(array, 3);
     """
     return np.append(arr, val);
 
@@ -68,7 +68,7 @@ def get_Promeny(args):
 
     Example
     -------
-    >>> get_Promeny(input);
+    get_Promeny(input);
     """
     with open(args.input) as f:
         result = [

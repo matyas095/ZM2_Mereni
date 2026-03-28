@@ -25,7 +25,7 @@ def extract_variables(formula_str, toIgnore = []):
     # (?!log|sin|...)    -> Negative lookahead: skip these specific words
     # [a-zA-Z_][a-zA-Z0-9_]* -> Match standard variable names (start with letter/underscore)
     ignore_pattern = r'\b(?:' + '|'.join(ignored_functions) + r')\b';
-    regex_pattern = rf'\b(?!{ignore_pattern}|[0-9])[a-zA-Z_][a-zA-Z0-9_]*\b';
+    regex_pattern = r'\b(?!' + ignore_pattern + r'|[0-9])[a-zA-Z_][a-zA-Z0-9_]*\b';
 
     variables = re.findall(regex_pattern, formula_str);
     
@@ -53,8 +53,7 @@ def derivace(data, aritmety = None):
         if(len(missing_vars) > 0):
             missing_str = "\n".join(missing_vars);
         
-            raise Exception(f"Chybí mi tu data v 'ELEMENTY':\n{color_print.BOLD}{missing_vars}{color_print.END}")
-        if(len(set(extract_variables(rce, list(local_const_dict))) - set(data["ELEMENTY"].keys())) > 0): raise Exception(f"Chybí mi data v 'ELEMENTY' a to:\n{color_print.BOLD}{'\n'.join(set(variables) - set(data['ELEMENTY'].keys()))}")
+            raise Exception(f"Chybí mi tu data v 'ELEMENTY':\n{color_print.BOLD}{missing_vars}{color_print.END}");
         
         sym_map = { name: symbols(name) for name in variables };
         y = parse_expr(rce, local_dict=sym_map); # type: ignore
@@ -190,6 +189,3 @@ def run(args):
         case _:
             bengr = cleanup_structure(universal_indent_mapper(args.input));
             return derivace(cleanup_structure(universal_indent_mapper(args.input)));
-
-if __name__ == "__main__":
-    run("e");

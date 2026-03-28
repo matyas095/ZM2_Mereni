@@ -57,7 +57,7 @@ def smart_parse(rovnice_str):
 
 def doGraph(x, y, promena, rovnice, nazev_rce, title, pathToDir):
     plt.figure(figsize=(9, 6));
-    plt.plot(x, y, label=rf'$R = {latex(rovnice)}$');
+    plt.plot(x, y, label=r'$R = ' + latex(rovnice) + '$');
     plt.xlabel(promena);
     plt.ylabel(nazev_rce);
     plt.title(title);
@@ -66,8 +66,10 @@ def doGraph(x, y, promena, rovnice, nazev_rce, title, pathToDir):
     plt.savefig(f'{pathToDir}/{title}.svg', format='svg', bbox_inches='tight');
     plt.show();
 
-    print(f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{title}{color_print.END} a rovnicí {color_print.UNDERLINE}{nazev_rce}={rovnice}{color_print.END}" + 
-        f"se uložil do souboru:\n└──{pathToDir}/{title}.svg");
+    msg = (f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{title}{color_print.END} "
+       f"a rovnicí {color_print.UNDERLINE}{nazev_rce}={rovnice}{color_print.END} "
+       f"se uložil do souboru:\n└──{pathToDir}/{title}.svg")
+    print(msg);
     plt.close();
 
 def run(args):

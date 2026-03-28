@@ -35,10 +35,13 @@ jobs:
           --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
           --add-data 'utils.py:.' \
           --exclude-module IPython --exclude-module notebook \
+          --exclude-module test --exclude-module tests \
           --collect-submodules sympy \
           --collect-all matplotlib \
           --collect-all scipy \
           --collect-all scikit-learn \
+          --hidden-import PIL._tkinter_finder \
+          --hidden-import tkinter \
           --hidden-import sympy.parsing.latex \
           --hidden-import sklearn \
           --hidden-import matplotlib.backends.backend_tkagg \
@@ -137,6 +140,128 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
+          body: |
+            # Statistické vypracování dat ${{ github.ref_name }}
+            ## Metody
+            - **aritmeticky_prumer** - Aritmetický průměr
+
+            ## Statistické zpracování dat
+            Následující seznam má následující strukturu
+            - **název metody** - Napis
+                - Popis
+                - Vstup
+                    - ...
+                - Výstup
+                    - ...
+
+            Lze spustit automatické výpočty jako:
+            - **aritmeticky_prumer** - Aritmetický průměr + Střední kvadratická chyba aritmetického průměru
+                - Výpočet aritmetického průměru spolu se střední kvadratickou chybou
+                - Vstup
+                    - `soubor [txt, -, ...] {r}`
+                        - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jeho struktura je následující: `VELIČINA=DATA` s tím, že pro každou novou veličinu zadáme do nového řádku, příklad níže, nebo [zde](statisticke_vypracovani/aritmeticky_prumer/input/input_aritm_prumer) 
+                            - U_0=2343,234,23423\
+                              I_0=323,234928,1243
+                - Výstup `print ->`
+                    - VELIČINA\
+                    ├──Aritmetický průměr = ČÍSLO\
+                    └──Chyba aritmetického průměru = ČÍSLO
+            - **neprima_chyba** - Nepřímá chyba měření
+              - Vypočítá nepřímou chybu dle zadaného vstahu
+              - Vstup
+                  - `soubor [txt, -, ...] {r}`
+                      - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jeho struktura je následující: `ELEMENTY. ..DATA\FUNKCE ...DATA` s tím, že pro každou novou veličinu zadáme do nového řádku, příklad níže, nebo [zde](statisticke_vypracovani/neprima_chyba/input/input_file) 
+                      - příklad
+                          ```bash
+                          ELEMENTY
+                              t=0, 600, 1200, 1800, 2400, 3000, 3600
+                              U=300, 297, 291, 287, 284, 278, 274
+
+                          FUNKCE
+                              R=t / (C * ln(U_0 / U))
+                                  FUNC_KONSTANTY
+                                      U_0=300
+                                      C=0.000000047
+                          ```
+                  - `soubor Excel [xslx] {r}`
+                      - *Excelový soubor* obsahuje tabulku (jeden list zatím vro) obsahující data do sloupců (nestrukturovanost bude trestána) (jedna tabulka na jeden soubor) je nutné k tomu přidat jednoduché flagy
+                      - `-r [--rovnice] "ROVNICE"`
+                          - Rovnice pro kterou bude nepřímá chyba vypočítaná (zatím textově pak LaTeXově)
+                      - `-k [--konstanty] '{ "PROMĚNNÁ": ČÍSLO }'`
+                          - Přidá konstanty do rovnice
+                      - Příklad zvolání
+                          ```bash
+                          ./statistika_v0.1_linux neprima_chyba -i test.xlsx -r "R=t / (C * ln(U_0 / U))" -k '{"U_0": 300, "C": 0.0000000470}'
+                          ```
+              - Výstup `print ->`
+                  - VELIČINA\
+                  └──__**Chyba**__ = ČÍSLO
+            - **graf** - Grafické znázornění stavu
+              - Udělá grafické znázornění
+              - Vstup
+                  - `soubor [txt, -, ...] {r}`
+                      - *soubor* obsahuje veličiny a hodnoty ke zpracování metodou, jehož struktura je následující: `VELIČINA [ROZMĚR]=DATA` `[zde](statisticke_vypracovani/graf/input/input_file) 
+                      - příklad
+                          ```bash
+                          t [S]=0.0,600.0,1200.0,1800.0,2400.0,3000.0,3600.0
+                          U [V]=300.0,297.0,291.0,287.0,284.0,278.0,274.0   
+                          ```
+              - Výstup `svg -> file.svg`
+                  - `<svg image>`
+            - **graf_interval** - Grafické znázornění stavu
+              - Udělá grafické znázornění
+              - Vstup flags
+                  - `-n [--name] <str>`
+                      - Název grafu
+                      - **POVINNÉ**
+                  - `-r [--rovnice] <str>`
+                      - Funkční závislost formát 'VELIČINA=VZTAH'\nNutná aby byla jedno proměnná.
+                      - Příklad: `R=25/I`
+                      - **POVINNÉ**
+                  - `-i [--interval] <int> <int>`
+                      - Interval na kterým je vztah.
+                      - Příklad: `-i 10 100`
+                          - Bere interval `⟨10, 100⟩`
+                      - **POVINNÉ**
+              - Výstup `svg -> file.svg`
+                  - `<svg image>`
+
+            > [!WARNING]
+            > Čísla je NUTNÉ zapsat v . pokud jsou desetinné např.: 34.23, čárka , je pouze jako oddělovač dat.
+
+            ### Vyvolávání metod
+            Pro vyvolání metody použijeme soubor .exe v tomto releasu, která tyto metody modulárně vyvolává. A to ve formátu nejčastěji (zatím rozhodně) v CLI (Command Line Interface):
+            ```pwsh
+            .\statistika.exe METODA [-i CESTA_K_SOUBORU]
+            ```
+
+            Pro každou metodu volíme jeho název pro argument `METODA`, tedy první argument v listu, tedy to co je tučně vyznačené, např.: chci aritmetický průměr tak název metody je aritmeticky_prumer.
+
+            Následně je nutné se zaměřit na vstup, vstupy jsou obecně zadaný a to ve formátu  `OBJEKT [TYP_OBJEKTU] {rwx}`, kde
+            - `OBJEKT` je vstupní objekt, soubor, ...
+            - `[TYP OBJEKTU]` jakej typ je objektu (clueless) např.: .txt, ...
+            - `{rwx}` jsou oprávnění `r` - read (čtení), `w` - write (zápis), `x` - execute (provést), pokud `{rwx}` chybí, tak oprávnění nejsou žádáná
+
+            pro každý vstup platí i určitá struktura, která je popsána pod `OBJEKT`
+
+            > [!IMPORTANT]
+            > Každej vstupní soubor MUSÍ splňovat podmínky vstupu jako vyznačený v listu výše.
+
+            Pro výpis všech metod lze využít příkazu:
+            ```pwsh
+            .\statistika.exe -h
+            ```
+
+            #### Příklad
+            ```pwsh
+            .\statistika.exe  aritmeticky_prumer -i input/KARL.txt
+            ```
+            ```bash
+            ./statistika_linux aritmeticky_prumer -i input/KARL.txt
+            ```
+
+            ### 🔐 Instalace certifikátu:
+            Pro odstranění varování Windows/Linux spusťte přiložený skript `install_trust` jako administrátor.
           files: |
             linux-artifact/*.tar.gz
             windows-artifact/*.zip

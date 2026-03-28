@@ -17,7 +17,7 @@ def get_args_info():
         },
         {
             "flags": ["-i", "--interval"],
-            "help": "Interval na kterým je vztah",
+            "help": "Interval na kterým je vztah. Formát -i 10 100; Interval <10, 100>",
             "required": True,
             "nargs": 2,        # Očekává 2 hodnoty
             "type": float

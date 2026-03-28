@@ -33,7 +33,7 @@ def get_args_info():
         },
         {
             "flags": ["-f", "--fit"],
-            "help": "Zobrazí y-ovou osu v logaritmickým měřítku",
+            "help": "Udělá fit dle zadaného stavu. Format -f [linearni, kvadraticky, exponenciali, mocninny]\nNapř.: .. -f kvadraticky",
             "choices": ["linearni", "kvadraticky", "exponencialni", "mocninny"],
             "default": None,
             "required": False

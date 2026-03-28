@@ -68,7 +68,7 @@ jobs:
           --exclude-module matplotlib.tests \
           --exclude-module sklearn.tests \
           --add-data 'statisticke_vypracovani;statisticke_vypracovani' \
-          --add-data 'utils.py:.' \
+          --add-data 'utils.py;.' \
           --collect-all sympy \
           --collect-all matplotlib \
           --collect-all scipy \

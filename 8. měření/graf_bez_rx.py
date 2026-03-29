@@ -32,14 +32,14 @@ def prep_Plot(hodnoty, chyby, title):
     plt.xticks(t);
 
     plt.xlabel('t [s]');
-    plt.ylabel('ln(U) [V]');
+    plt.ylabel('ln(U/V) [-]');
     plt.title(title);
     plt.legend();
     plt.grid(alpha=0.3);
     plt.savefig(f'grafy/{title}.svg', format='svg', bbox_inches='tight');
     plt.close();
 
-    return (k, q);
+    return (k, q, chyba_k);
 
 hodnoty = {};
 
@@ -63,9 +63,13 @@ with open("input") as f:
 kapacita_C = 0.0000000470;
 R_0 = 1;
 R = 1;
+k_R0 = 1;
+chyba_k_R0 = 1;
+k_R = 1;
+chyba_k_R = 1;
 
 for k, v in hodnoty.items():
-    k_primky, q_primky = prep_Plot(
+    k_primky, q_primky, chyba_k = prep_Plot(
         v["hodnoty"],
         v["chyby"],
         k
@@ -73,9 +77,21 @@ for k, v in hodnoty.items():
 
     # print(k, q)
     if k == "Semilogaritmická regrese napětí vybíjenýho kondenzátoru bez připojeného odporu $R_x$":
+        chyba_k_R0 = chyba_k;
+        k_R0 = k_primky;
         R_0 = (-1 / (k_primky * kapacita_C));
     else:
+        k_R = chyba_k;
+        chyba_k_R = chyba_k;
         R = (-1 / (k_primky * kapacita_C));
 
+chyba_R0 = R_0 * math.sqrt( (chyba_k_R0 / k_R0) ** 2 );
+chyba_R = R * math.sqrt( (chyba_k_R / k_R) ** 2 );
+
+print(f"R_0 = {R_0}");
+print(f"> Chyba_R_0 = {chyba_R0}");
+print(f"R = {R}");
+print(f"> Chyba_R_0 = {chyba_R}");
 print(f"R_x = {(R * R_0)/(R_0 - R) / 10 ** 6}");
+print(f"> Chyba R_x = {(((R * R_0)/(R_0 - R)) * math.sqrt( (chyba_R0 / R_0) ** 2 + (chyba_R / R) ** 2 )) / 10 ** 6}");
 

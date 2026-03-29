@@ -14,7 +14,7 @@ R_vals = R_inf * np.exp(B / T_range);
 plt.figure(figsize=(9, 6));
 plt.plot(T_range, R_vals, label=r'$R = R_{\infty} e^{B/T}$');
 plt.xlabel('T [K]');
-plt.ylabel('R [$\Omega$]');
+plt.ylabel(r'R [$\Omega$]');
 plt.title(title1);
 plt.grid(alpha=0.3);
 plt.legend();
@@ -30,7 +30,7 @@ plt.figure(figsize=(9, 6));
 plt.plot(inv_T, ln_R_vals, label=r'$\ln R = \ln R_{\infty} + B/T$');
 
 plt.xlabel('1/T [$K^{-1}$]');
-plt.ylabel('ln R [-]');
+plt.ylabel(r'ln (R/$\Omega$) [-]');
 plt.title(title2);
 plt.grid(alpha=0.3);
 plt.legend();

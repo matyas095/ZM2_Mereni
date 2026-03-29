@@ -43,7 +43,7 @@ def prep_Plot(hodnoty, chyby, title):
 
 hodnoty = {};
 
-with open("input") as f:
+with open("input.txt", "r") as f:
     current_tag = "";
     select_Tag = False;
     for line in f:
@@ -62,36 +62,37 @@ with open("input") as f:
 
 kapacita_C = 0.0000000470;
 R_0 = 1;
+R_0_chyba = 1;
 R = 1;
 k_R0 = 1;
 chyba_k_R0 = 1;
 k_R = 1;
 chyba_k_R = 1;
+R_chyba = 1;
 
 for k, v in hodnoty.items():
     k_primky, q_primky, chyba_k = prep_Plot(
         v["hodnoty"],
         v["chyby"],
-        k
+        k.replace("$", "")
     );
 
-    # print(k, q)
-    if k == "Semilogaritmická regrese napětí vybíjenýho kondenzátoru bez připojeného odporu $R_x$":
-        chyba_k_R0 = chyba_k;
-        k_R0 = k_primky;
+    if "bez" in k:
         R_0 = (-1 / (k_primky * kapacita_C));
+        R_0_chyba = (R_0 * chyba_k / abs(k_primky));
     else:
         k_R = chyba_k;
         chyba_k_R = chyba_k;
         R = (-1 / (k_primky * kapacita_C));
+        R_chyba = (R * chyba_k / abs(k_primky));
 
-chyba_R0 = R_0 * math.sqrt( (chyba_k_R0 / k_R0) ** 2 );
-chyba_R = R * math.sqrt( (chyba_k_R / k_R) ** 2 );
+R_x = (R * R_0)/(R_0 - R);
+R_x_Chyba = 1 / ((R_0 - R) ** 2) * math.sqrt((R_0 ** 4) * (R_0_chyba ** 2) + (R ** 4) * (R_chyba ** 2));
 
 print(f"R_0 = {R_0}");
-print(f"> Chyba_R_0 = {chyba_R0}");
+print(f"> Chyba R_0 = {R_0_chyba}");
 print(f"R = {R}");
-print(f"> Chyba_R_0 = {chyba_R}");
-print(f"R_x = {(R * R_0)/(R_0 - R) / 10 ** 6}");
-print(f"> Chyba R_x = {(((R * R_0)/(R_0 - R)) * math.sqrt( (chyba_R0 / R_0) ** 2 + (chyba_R / R) ** 2 )) / 10 ** 6}");
+print(f"> Chyba R = {R_chyba}");
+print(f"R_x = {R_x}");
+print(f"> Chyba R_x = {R_x_Chyba}");
 

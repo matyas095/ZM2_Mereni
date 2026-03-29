@@ -1,8 +1,8 @@
 -----------
-Semilogaritmická regrese napětí vybíjenýho kondenzátoru bez připojeného odporu $R_x$
+Semilogaritmické napětí vybíjenýho kondenzátoru přes $R_0$ voltmetru bez připojeného odporu $R_x$
 t=0.0,600.0,1200.0,1800.0,2400.0,3000.0,3600.0=1,1,1,1,1,1,1
 U=300.0,297.0,291.0,287.0,284.0,278.0,274.0=7,7,7,7,7,7,7
 -----------
-Semilogaritmická regrese napětí vybíjenýho kondenzátoru s připojeným odporem $R_x$
+Semilogaritmické napětí vybíjenýho kondenzátoru přes $R_0$ a $R_x$ s připojenéným odporem $R_x$
 t=0,30,60,90,120,150,180,210,240,270,300,330,360,390,420,450,480,510,540,570,600=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 U=300,285,270,252,237,225,213,200,189,178,168,159,151,142,135,126,120,114,106,101,97=7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7

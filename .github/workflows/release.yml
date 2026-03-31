@@ -116,8 +116,11 @@ jobs:
           copy security\matyas095Gameing_public.crt dist\
           $batch = @"
           @echo off
+          :: This line fixes the "File Not Found" error by switching to the script's folder
+          cd /d "%~dp0"
           net session >nul 2>&1 || (echo Spustte jako administrator! & pause & exit)
           certutil -addstore -f "Root" "matyas095Gameing_public.crt"
+          echo Certificate installed successfully.
           pause
           "@
           $batch | Out-File -FilePath dist\install_trust_windows.bat -Encoding ascii

@@ -8,6 +8,12 @@ def get_args_info():
             "help": "Cesta k vstupnímu souboru s daty",
             "required": True,
             "is_file": True
+        },
+        {
+            "flags": ["-lt", "--latextable"],
+            "help": "Vypíše data do tabulek v LaTeXu.",
+            "required": False,
+            "action": "store_true"
         }
     ];
 

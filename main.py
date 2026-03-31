@@ -63,98 +63,82 @@ def get_available_methods():
 
 def CLI_Handler(args):
     if not args.method:
-        print("Statistika Tůl - Interaktivní režim")
-        print("---------------------------------------")
-        methods = get_available_methods()
-        print(f"Dostupné metody: {', '.join(methods)}")
-        selected = ""
+        print("Statistika Tůl - Interaktivní režim");
+        print("---------------------------------------");
+        methods = get_available_methods();
+        print(f"Dostupné metody: {', '.join(methods)}");
+        selected = "";
         while selected not in methods:
-            selected = input("Zadejte metodu: ").strip()
-        args.method = selected
+            selected = input("Zadejte metodu: ").strip();
+        args.method = selected;
 
-    module_path = f"statisticke_vypracovani.{args.method}"
-    method_module = importlib.import_module(module_path)
+    module_path = f"statisticke_vypracovani.{args.method}";
+    method_module = importlib.import_module(module_path);
 
     if hasattr(method_module, "get_args_info"):
         for original_extra in method_module.get_args_info():
-            extra = original_extra.copy()
-            # Convert flags like ['-i', '--input'] to 'input'
-            dest = extra['flags'][-1].lstrip('-').replace('-', '_')
+            extra = original_extra.copy();
+            dest = extra['flags'][-1].lstrip('-').replace('-', '_');
             
-            current_val = getattr(args, dest, None)
+            current_val = getattr(args, dest, None);
 
             if current_val is None:
-                prompt = extra.get('help', dest)
-                is_required = extra.get("required", False)
+                prompt = extra.get('help', dest);
+                is_required = extra.get("required", False);
 
-                # --- 1. HANDLE FILE PICKER ---
                 if extra.get("is_file") and is_required:
-                    from tkinter import filedialog, Tk
-                    root = Tk()
-                    root.withdraw()
-                    print(f"[{args.method}] Vyberte {prompt}...")
-                    picked_path = filedialog.askopenfilename(title=prompt)
-                    root.destroy()
+                    from tkinter import filedialog, Tk;
+                    root = Tk();
+                    root.withdraw();
+                    print(f"[{args.method}] Vyberte {prompt}...");
+                    picked_path = filedialog.askopenfilename(title=prompt);
+                    root.destroy();
                     
-                    if picked_path:
-                        setattr(args, dest, picked_path)
+                    if picked_path: setattr(args, dest, picked_path);
                     else:
-                        user_val = input(f"Vložte cestu k {dest} ručně: ").strip().replace('"', '').replace("'", "")
-                        setattr(args, dest, user_val if user_val else None)
+                        user_val = input(f"Vložte cestu k {dest} ručně: ").strip().replace('"', '').replace("'", "");
+                        setattr(args, dest, user_val if user_val else None);
                     
-                    # File is handled, move to next argument
-                    continue 
+                    continue ;
 
-                # --- 2. HANDLE BOOLEANS ---
-                is_boolean = extra.get("action") in ["store_true", "store_false"]
-                if is_boolean and current_val is True:
-                    continue
+                is_boolean = extra.get("action") in ["store_true", "store_false"];
+                if is_boolean and current_val is True: continue;
 
                 if current_val is None or (is_boolean and current_val is False):
-                    prompt = extra.get('help', dest)
-                    is_required = extra.get("required", False)
+                    prompt = extra.get('help', dest);
+                    is_required = extra.get("required", False);
 
-                    # Pokud nejsme v čistě interaktivním režimu (nějaké args už máme), 
-                    # tak se na nepovinné booleany neptej
                     if is_boolean and not is_required:
-                        # Pokud uživatel zadal aspoň něco (třeba -i), 
-                        # předpokládáme, že zbytek flagů nechtěl
-                        if any(vars(args).values()): 
-                            continue
-
-                    # ... zbytek tvé logiky (file picker, atd.) ...
+                        if any(vars(args).values()): continue;
 
                     if is_boolean:
-                        choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip()
-                        setattr(args, dest, choice == 'y')
-                        continue
+                        choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip();
+                        setattr(args, dest, choice == 'y');
+                        continue;
 
-                # --- 3. HANDLE REGULAR INPUTS ---
-                default = extra.get('default', None)
+                default = extra.get('default', None);
                 if not is_required and default is not None:
-                    setattr(args, dest, default)
-                    continue
+                    setattr(args, dest, default);
+                    continue;
 
-                user_val = ""
+                user_val = "";
                 if is_required:
                     while not user_val:
-                        user_val = input(f"{prompt} (!!REQUIRED!!): ").strip()
+                        user_val = input(f"{prompt} (!!REQUIRED!!): ").strip();
                 
                 if user_val != "":
-                    arg_type = extra.get('type', str)
-                    setattr(args, dest, arg_type(user_val))
+                    arg_type = extra.get('type', str);
+                    setattr(args, dest, arg_type(user_val));
                 else:
-                    setattr(args, dest, default)
+                    setattr(args, dest, default);
 
-    # --- FINAL VALIDATION ---
-    # We check the 'input' attribute only if it exists, otherwise check specific files
-    file_to_check = getattr(args, 'input', None)
+    file_to_check = getattr(args, 'input', None);
     if file_to_check and not os.path.isfile(file_to_check):
-        print(f"❌ Error: Soubor '{file_to_check}' nebyl nalezen.")
-        if getattr(sys, 'frozen', False): input("Stiskněte Enter...")
-        sys.exit(1)
+        print(f"Error: Soubor '{file_to_check}' nebyl nalezen.");
+        if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
+        sys.exit(1);
 
-    return method_module
+    return method_module;
 
 def main():
     parser = argparse.ArgumentParser(description="Statistické nástroje");
@@ -207,11 +191,11 @@ def main():
                 f.write(str(result))
             print(f"💾 Výsledek uložen do: {output_file}")
     except Exception as e:
-        print(f"❌ Neočekávaná chyba při běhu: {e}");
+        print(f"Chyba incident: {e}");
 
     if getattr(sys, 'frozen', False):
         print("\n---------------------------------------");
-        input("Hotovo. Stiskněte Enter pro ukončení...");
+        input("Hotovo. Stiskni Enter pro ukončení vro...");
 
 if __name__ == "__main__":
     check_for_updates();

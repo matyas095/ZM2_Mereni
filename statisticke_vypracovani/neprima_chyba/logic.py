@@ -10,13 +10,6 @@ from statisticke_vypracovani.aritmeticky_prumer.logic import run as aritm_Run;
 
 import pandas as pd;
 
-
-def safe_float_convert(value_str, key_name):
-    try:
-        return float(value_str.strip());
-    except ValueError:
-        raise ValueError(f"CRITICAL ERROR: The value '{value_str}' for '{key_name}' is not a valid number!")
-
 def extract_variables(formula_str, toIgnore = []):
     ignored_functions = ['log', 'ln', 'sin', 'cos', 'tan', 'exp', 'sqrt', 'abs'] + toIgnore;
     
@@ -138,7 +131,7 @@ def cleanup_structure(d):
     """Recursively simplifies dicts that only contain a __value__."""
     if not isinstance(d, dict): return d;
     
-    if "__value__" in d and len(d) == 1: return d["__value__"]
+    if "__value__" in d and len(d) == 1: return d["__value__"];
     
     return {k: cleanup_structure(v) for k, v in d.items()};
 

@@ -2,19 +2,7 @@ import math;
 import numpy as np;
 from pathlib import Path;
 from itertools import zip_longest;
-
-
-class color_print:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
+from utils import color_print;
 
 def APPEND_ARR_NUMPY(arr: np.ndarray, val):
     """
@@ -47,8 +35,8 @@ def run(args, doPrint = True):
         result = [
             [group, [try_convert(sub) for sub in args[group]]]
             for group in args.keys()
-        ]
-        PROMENA = np.array(result, dtype=object)
+        ];
+        PROMENA = np.array(result, dtype=object);
     else:
         with open(args.input) as f: # type: ignore
             result = [

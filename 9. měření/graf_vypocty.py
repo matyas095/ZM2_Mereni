@@ -58,6 +58,10 @@ def convertFile(inpu):
 
 def doGraph_SCATTER(x_Range, y_Range, x_Key, y_Key, title):
     plt.figure(figsize=(9, 6));
+    # plt.errorbar(t, ln_U, yerr=chyba_ln_U, fmt='o', capsize=3, color='darkred', label='Chyba měření');
+    # plt.plot(t, fit(t, k, q), 'b-', 
+    #          label=f'Fit přímky ($k={return_Cislo_Krat_10_Na(k)}$, $q={return_Cislo_Krat_10_Na(q)}$)');
+    # plt.xticks(x);
     plt.scatter(x_Range, y_Range, color='blue', s=10, label='Naměřená data');
 
     plt.xlabel(f'{x_Key}');
@@ -91,7 +95,7 @@ def main():
         U_N = np.abs(hodnoty['U1/V']['hodnoty']);
         
         x_Range = 1 / hodnoty['T1/K']['hodnoty'];
-        R = (U_T / U_N) * 330.12
+        R = (U_T / U_N) * 330.12;
         y_Range = np.log(R);
         x_Key = '1/T [$K^{-1}$]';
         y_Key = r'ln (R / $\Omega$) [-]';
@@ -110,8 +114,11 @@ def main():
         plt.legend();
 
         R_0_calc = np.exp(k * ( 1 / 273.15 ) + q);
+        grad = np.array([1 / 273.15, 1]);
+
+        dR_0 = R_0_calc * np.sqrt(grad.T @ pcov @ grad)
         print(f"Vypočtená konstanta B: {k:.2f} K");
-        print(f"Předpovězený odpor při 0°C: {R_0_calc:.2f} Ohm");
+        print(f"{color_print.BOLD}{color_print.UNDERLINE}Fitovaný odpor při 0°C{color_print.END}: ({color_print.BOLD}{R_0_calc:.2f}{color_print.END} ± {color_print.BOLD}{dR_0:.2f}{color_print.END}) Ohm");
 
         save_Graph_And_Leave("".join(title.split("/")));
         dvoje_1, dvoje_2 = (min(hodnoty['T1/K']['hodnoty']), max(R)), (max(hodnoty['T1/K']['hodnoty']), min(R));
@@ -123,14 +130,16 @@ def main():
         R_C_0 = R_infty * np.exp( B / to_Kelvin(0) );
         chyba_R_C_0 = R_C_0 * np.sqrt((dk / (to_Kelvin(0)))**2 + dq**2);
 
+        print(dk, dq)
+
         print("");
 
         toPrint = [
             fr"({color_print.BOLD}{R_C_0}{color_print.END} ± {color_print.BOLD}{chyba_R_C_0}{color_print.END}) Ohm",
             fr"├──{color_print.RED}{color_print.BOLD}B{color_print.END} = ({color_print.UNDERLINE}{B} ± {dk}{color_print.END}) K",
-            fr"├────{color_print.RED}{color_print.BOLD}B{color_print.END} = ({color_print.UNDERLINE}{return_Cislo_Krat_10_Na(B)} ± {return_Cislo_Krat_10_Na(dk)}{color_print.END}) K",
+            fr"├────{color_print.RED}{color_print.BOLD}B{color_print.END} ≐ ({color_print.UNDERLINE}{return_Cislo_Krat_10_Na(B)} ± {return_Cislo_Krat_10_Na(dk)}{color_print.END}) K",
             fr"├──{color_print.BLUE}{color_print.BOLD}R_infty{color_print.END} = ({color_print.UNDERLINE}{R_infty} ± {dq}{color_print.END}) Ohm",
-            fr"└────{color_print.BLUE}{color_print.BOLD}R_infty{color_print.END} = ({color_print.UNDERLINE}{return_Cislo_Krat_10_Na(R_infty)} ± {return_Cislo_Krat_10_Na(dq)}{color_print.END}) Ohm"
+            fr"└────{color_print.BLUE}{color_print.BOLD}R_infty{color_print.END} ≐ ({color_print.UNDERLINE}{return_Cislo_Krat_10_Na(R_infty)} ± {return_Cislo_Krat_10_Na(dq)}{color_print.END}) Ohm"
         ];
 
         title_PRINT = f"{color_print.UNDERLINE}R při teplotě 0˚C{color_print.END}";
@@ -138,10 +147,12 @@ def main():
         leToPrint = max(len_no_color(s) for s in toPrint);
         leTitle = len_no_color(title_PRINT);
 
+        # Výpočet mezer pro nadpis
         side_len = (leToPrint - leTitle) // 2;
         extra = (leToPrint - leTitle) % 2;
 
-        print("╔" + "═" * side_len + title_PRINT + "═" * (side_len + extra + 2) + "╗");
+        # 1. Horní linka s nadpisem
+        print("╔" + "═" * side_len + " " +  title_PRINT + " " + "═" * (side_len + extra) + "╗");
 
         for s in toPrint:
             mezery = " " * (leToPrint - len_no_color(s));

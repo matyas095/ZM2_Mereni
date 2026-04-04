@@ -4,55 +4,77 @@ import re;
 from pathlib import Path;
 import numpy as np;
 from utils import color_print;
+from statisticke_vypracovani.base import Method;
 
-def run(args, returnFile = False):
-    dir_name = "outputs";
+class ConvertSoubor(Method):
+    name = "convert_soubor";
+    description = "Konverze tabulkového souboru do formátu PROMĚNNÁ=data";
 
-    folder_path = Path(dir_name).resolve();
-    folder_path.mkdir(parents=True, exist_ok=True);
+    def get_args_info(self):
+        return [
+            {
+                "flags": ["-i", "--input"],
+                "help": "Cesta k vstupnímu souboru s daty",
+                "required": True,
+                "is_file": True
+            },
+            {
+                "flags": ["-o", "--output"],
+                "help": "Název výstupu (BEZ PŘÍPONY)",
+                "required": False,
+                "default": "output_convertor",
+                "type": str
+            },
+        ];
 
-    outputs = np.array([]);
+    def run(self, args, returnFile = False):
+        dir_name = "outputs";
 
-    with open(args.input) as f:
-        f = io.StringIO(f.read());
+        folder_path = Path(dir_name).resolve();
+        folder_path.mkdir(parents=True, exist_ok=True);
 
-        header_labels = re.split(r'\s{2,}', f.readline().strip());
-        header_units = re.split(r'\s{2,}', f.readline().strip());
-        labels = header_labels[0].strip().split('\t');
-        units = header_units[0].strip().split('\t');
+        outputs = np.array([]);
 
-        combined_headers = [f"{label} ({unit})" for label, unit in zip(labels, units)];
+        with open(args.input) as f:
+            f = io.StringIO(f.read());
 
-        df = pd.read_csv(f, sep='\t', decimal=',', skiprows=2, names=combined_headers);
-        toProcess = [];
-        for _, row in df.iterrows():
-            toProcess.append( { key: row[key] for key in combined_headers } );
-        
-        toWrite = {};
-        for row in toProcess:
-            for key in row:
-                if key not in toWrite: toWrite[key] = [];
-                toWrite[key].append(row[key]);
-        
-        all_lines = [];
-        for rowKey in toWrite:
-            str_list = [str(val) for val in toWrite[rowKey]];
-            match = re.search(r'\(([^\)]+)\)', rowKey);
-            if match: key = match.group(1) ;
-            else: raise Exception("Chyba v klici");
-        
-            line = f'{key}={",".join(str_list)}';
-            all_lines.append(line);
-        
-        np.append(outputs, all_lines);
-        if(not returnFile):
-            with open(folder_path / (getattr(args, "output", "ERRORER.txt") +  ".txt"), 'w', encoding='utf-8') as f:
-                f.write("\n".join(all_lines));
-    
-    if(returnFile): return outputs;
-    
-    print(
-        f"Soubor {color_print.GREEN}uložen{color_print.END} pod názvem "
-        f"{color_print.BOLD}{getattr(args, "output", "ERRORER.txt") +  ".txt"}{color_print.END} cesta:\n"
-        f"└──{folder_path / (getattr(args, "output", "ERRORER.txt") +  ".txt")}"
-    );
+            header_labels = re.split(r'\s{2,}', f.readline().strip());
+            header_units = re.split(r'\s{2,}', f.readline().strip());
+            labels = header_labels[0].strip().split('\t');
+            units = header_units[0].strip().split('\t');
+
+            combined_headers = [f"{label} ({unit})" for label, unit in zip(labels, units)];
+
+            df = pd.read_csv(f, sep='\t', decimal=',', skiprows=2, names=combined_headers);
+            toProcess = [];
+            for _, row in df.iterrows():
+                toProcess.append( { key: row[key] for key in combined_headers } );
+
+            toWrite = {};
+            for row in toProcess:
+                for key in row:
+                    if key not in toWrite: toWrite[key] = [];
+                    toWrite[key].append(row[key]);
+
+            all_lines = [];
+            for rowKey in toWrite:
+                str_list = [str(val) for val in toWrite[rowKey]];
+                match = re.search(r'\(([^\)]+)\)', rowKey);
+                if match: key = match.group(1) ;
+                else: raise Exception("Chyba v klici");
+
+                line = f'{key}={",".join(str_list)}';
+                all_lines.append(line);
+
+            np.append(outputs, all_lines);
+            if(not returnFile):
+                with open(folder_path / (getattr(args, "output", "ERRORER.txt") +  ".txt"), 'w', encoding='utf-8') as f:
+                    f.write("\n".join(all_lines));
+
+        if(returnFile): return outputs;
+
+        print(
+            f"Soubor {color_print.GREEN}uložen{color_print.END} pod názvem "
+            f"{color_print.BOLD}{getattr(args, 'output', 'ERRORER.txt') + '.txt'}{color_print.END} cesta:\n"
+            f"└──{folder_path / (getattr(args, 'output', 'ERRORER.txt') + '.txt')}"
+        );

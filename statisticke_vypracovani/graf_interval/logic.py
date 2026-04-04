@@ -8,19 +8,20 @@ from pathlib import Path;
 from sympy import symbols, lambdify, latex, log, E, pi, exp;
 from sympy.parsing.sympy_parser import parse_expr;
 from sympy.parsing.latex import parse_latex;
+from statisticke_vypracovani.base import Method;
 
 def clean_latex(text):
     if not isinstance(text, str):
         text = latex(text);
-    
+
     text = text.replace(r'\mathtt', '').replace(r'\text', '').replace(r'\mathrm', '');
-    
+
     text = text.replace('backslashtext', '').replace('backslash', '');
     text = text.replace(r'\\', '').replace('\\', '');
     text = text.replace('Ohm', r'\Omega').replace('Omega', r'\Omega');
-    
+
     text = text.replace('{', '').replace('}', '');
-    
+
     return text.strip();
 
 
@@ -37,18 +38,22 @@ def smart_parse(rovnice_str):
     if "\\" in vyraz_str:
         if "exp" in vyraz_str and "\\exp" not in vyraz_str:
             vyraz_str = vyraz_str.replace("exp", "\\exp");
-            
+
         parsed = parse_latex(vyraz_str);
         found_vars = [s.name for s in parsed.free_symbols];
     else:
-        # Python styl
         found_vars = extract_variables(vyraz_str);
         ldict = {name: symbols(name) for name in found_vars};
         ldict.update(base_dict);
         parsed = parse_expr(vyraz_str, local_dict=ldict);
 
     forbidden = {'e', 'E', 'pi', 'exp', 'log', 'ln', 'sin', 'cos', 'tan'};
-    clean_vars = [v for v in found_vars if v not in forbidden and not v.startswith('Dummy')];
+    seen = set();
+    clean_vars = [];
+    for v in found_vars:
+        if v not in forbidden and not v.startswith('Dummy') and v not in seen:
+            clean_vars.append(v);
+            seen.add(v);
 
     if "exp" in vyraz_str:
         clean_vars = [v for v in clean_vars if v not in ['e', 'x', 'p']];
@@ -72,19 +77,46 @@ def doGraph(x, y, promena, rovnice, nazev_rce, title, pathToDir):
     print(msg);
     plt.close();
 
-def run(args):
-    nazev_rce, rovnice = args.rovnice.split("=");
-    parsed_y, variables, nazev_veliciny = smart_parse(args.rovnice);
+class GrafInterval(Method):
+    name = "graf_interval";
+    description = "Graf funkce na zadaném intervalu";
 
-    start_int, end_int = args.interval;
+    def get_args_info(self):
+        return [
+            {
+                "flags": ["-n", "--name"],
+                "help": "Název grafu",
+                "required": True,
+                "type": str
+            },
+            {
+                "flags": ["-r", "--rovnice"],
+                "help": "Funkční závislost formát 'VELIČINA=VZTAH'\nNutná aby byla jedno proměnná.",
+                "required": True,
+                "type": str
+            },
+            {
+                "flags": ["-i", "--interval"],
+                "help": "Interval na kterým je vztah. Formát -i 10 100; Interval <10, 100>",
+                "required": True,
+                "nargs": 2,
+                "type": float
+            }
+        ];
 
-    f = lambdify([symbols(v) for v in variables], parsed_y, 'numpy');
-    x_Range = np.linspace(start_int, end_int, 1000);
-    y_vals = f(x_Range)
+    def run(self, args):
+        nazev_rce, rovnice = args.rovnice.split("=");
+        parsed_y, variables, nazev_veliciny = smart_parse(args.rovnice);
 
-    dir_name = "grafy_metoda_graf";
+        start_int, end_int = args.interval;
 
-    folder_path = Path(dir_name).resolve();
-    folder_path.mkdir(parents=True, exist_ok=True);
+        f = lambdify([symbols(v) for v in variables], parsed_y, 'numpy');
+        x_Range = np.linspace(start_int, end_int, 1000);
+        y_vals = f(x_Range)
 
-    return doGraph(x_Range, y_vals, variables[0], parsed_y, nazev_rce, args.name, folder_path,);
+        dir_name = "grafy_metoda_graf";
+
+        folder_path = Path(dir_name).resolve();
+        folder_path.mkdir(parents=True, exist_ok=True);
+
+        return doGraph(x_Range, y_vals, variables[0], parsed_y, nazev_rce, args.name, folder_path,);

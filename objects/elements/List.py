@@ -4,6 +4,7 @@ from pathlib import Path;
 from itertools import zip_longest;
 from .Element import Element;
 from utils import color_print;
+import os;
 
 class List:
     def __init__(self, list) -> None:
@@ -24,7 +25,15 @@ class List:
         return -int(math.floor(math.log10(chyba)));
 
     def toArray(self):
-        pass;
+        vals = [
+            [
+                group,
+                [str(el) for el in sublist]
+            ] 
+            for group, sublist in zip(self.container[:, 0], self.container[:, 1])
+        ];
+        print(vals);
+        return self.container;
 
     def append(self, value, i):
         return np.append(self.array[i, 1], value);
@@ -104,7 +113,7 @@ class List:
             );
             latex_table_END = (
                 "\n\t\\end{tabular}\n"
-                "\t\\caption{" + input("Jakej text chceš míti: ") + "}\n"
+                "\t\\caption{" + input("Jakej caption (text) chceš míti: ") + "}\n"
                 "\t\\label{tab:" + input("Jakej label chceš míti: ") + "}\n"
                 "\\end{table}"
             );
@@ -154,10 +163,12 @@ class List:
             );
             latex_table_END = (
                 "\n\t\\end{tabular}\n"
-                "\t\\caption{" + input("Jakej text chceš míti: ") + "}\n"
+                "\t\\caption{" + input("Jakej caption (text) chceš míti: ") + "}\n"
                 "\t\\label{tab:" + input("Jakej label chceš míti: ") + "}\n"
                 "\\end{table}"
             );
+            size = os.get_terminal_size()
+            print("-" * size.columns)
 
 
             with open(tex_File_Path, "w", encoding="utf-8") as f:

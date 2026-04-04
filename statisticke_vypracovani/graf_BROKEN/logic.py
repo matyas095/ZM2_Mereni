@@ -62,8 +62,8 @@ def najdi_nejlepsi_fit(x, y):
     return nejlepsi, vysledky[nejlepsi]
 
 class Graf(Method):
-    name = "graf";
-    description = "2D/3D graf s volitelným fitem a rovnicí";
+    name = "graf_BROKEN";
+    description = "2D/3D graf_BROKEN s volitelným fitem a rovnicí";
 
     def get_args_info(self):
         return [
@@ -87,7 +87,7 @@ class Graf(Method):
             },
             {
                 "flags": ["-p", "--parametr"],
-                "help": "Vypočítá data jako 2D graf dle parametru f(x), funguje jenom s -r [--rovnice]",
+                "help": "Vypočítá data jako 2D graf_BROKEN dle parametru f(x), funguje jenom s -r [--rovnice]",
                 "type": str
             },
             {

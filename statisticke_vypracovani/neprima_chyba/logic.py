@@ -158,7 +158,7 @@ class NeprimaChyba(Method):
                 print(f"└──{color_print.UNDERLINE}Chyba{color_print.END} = {na_desatou} ({cislo})");
                 print("-" * 100);
 
-        return;
+        return resulte;
 
     def _xlsxExtension(self, args):
         if(not args.rovnice): raise ValueError("Chybí tag -r [--rovnice] pro rovnici, pro soubor .xlsx.");

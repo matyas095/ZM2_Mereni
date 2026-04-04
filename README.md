@@ -94,11 +94,11 @@ Podporuje také `.xlsx` soubory (pandas).
 2D a 3D grafy s volitelným fitem a rovnicí. Výstup jako SVG.
 
 ```bash
-python3 main.py graf -i data.txt -n "Můj graf"
-python3 main.py graf -i data.txt -n "Graf" -r "Z=t*U" 
-python3 main.py graf -i data.txt -n "Graf" -r "Z=t*U" -p t
-python3 main.py graf -i data.txt -n "Graf" -f linearni
-python3 main.py graf -i data.txt -n "Graf" -log -f exponencialni
+python3 main.py graf_BROKEN -i data.txt -n "Můj graf"
+python3 main.py graf_BROKEN -i data.txt -n "Graf" -r "Z=t*U" 
+python3 main.py graf_BROKEN -i data.txt -n "Graf" -r "Z=t*U" -p t
+python3 main.py graf_BROKEN -i data.txt -n "Graf" -f linearni
+python3 main.py graf_BROKEN -i data.txt -n "Graf" -log -f exponencialni
 ```
 
 | Argument | Popis |

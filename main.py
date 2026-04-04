@@ -39,7 +39,7 @@ def check_for_updates():
             local_v = CURRENT_VERSION.lstrip('v').strip();
 
             if version_to_tuple(remote_v) > version_to_tuple(local_v):
-                print(f"🚀 Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{url}");
+                print(f"Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{url}");
             else: pass
 
         elif response.status_code == 404:

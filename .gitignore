@@ -1,0 +1,34 @@
+# PyInstaller folders
+build/
+dist/
+release/
+*.spec
+
+# Security / Certificates (DO NOT SHARE THESE ON GITHUB)
+*.pfx
+*.ps1
+cert_password.txt
+security/
+*.sh
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environment
+.venv/
+.vscode/
+PYINSTALLER_CMD
+
+# Git
+.secrets
+deploy.sh
+
+# Trash
+*.xlsx
+get_requirements.py
+grafy_metoda_graf/
+*.tar
+latex_output/
+tester.py
+.idea/

@@ -138,10 +138,10 @@ class Measurement:
 
     def _fmt(self, val: float) -> str:
         p = self.precision;
-        from objects.units import extract_name_unit;
+        from objects.units import extract_name_unit, display_unit;
         _, unit = extract_name_unit(self.name);
         base = f"{val} ({round(val, p):.{p}f})";
-        return f"{base} {unit}" if unit else base;
+        return f"{base} {display_unit(unit)}";
 
     def print_result(self, show_type_b: bool = False, quiet: bool = False):
         if quiet:

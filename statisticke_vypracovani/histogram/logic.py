@@ -1,7 +1,7 @@
 import numpy as np;
 import matplotlib.pyplot as plt;
 from pathlib import Path;
-from utils import color_print, print_graf_saved;
+from utils import print_graf_saved;
 from statisticke_vypracovani.base import Method;
 from objects.input_parser import InputParser;
 

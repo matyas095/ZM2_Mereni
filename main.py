@@ -249,7 +249,6 @@ class CLIApp:
 
         if output_format == "json":
             result = method_instance.run(args);
-            from objects.input_parser import InputParser;
             if isinstance(result, dict):
                 from objects.measurement_set import MeasurementSet;
                 ms = MeasurementSet.from_dict({k: [v[0]] for k, v in result.items()});

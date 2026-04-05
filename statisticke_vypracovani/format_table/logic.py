@@ -1,6 +1,5 @@
 import json;
 import math;
-import re;
 from pathlib import Path;
 from utils import color_print;
 from statisticke_vypracovani.base import Method;
@@ -139,14 +138,12 @@ class FormatTable(Method):
                 p = 0;
 
             var, unit = parse_tex_header(headers[i]);
+            from objects.units import display_unit;
             mean_str = f"{round(mean, p):.{p}f}".replace(".", dec_sep);
             err_str = f"{round(u_A, p):.{p}f}".replace(".", dec_sep);
             var_clean = var.replace("$", "");
-
-            if unit:
-                line = f"${var_clean} = ({mean_str} \\pm {err_str})\\,\\mathrm{{{unit}}}$";
-            else:
-                line = f"${var_clean} = ({mean_str} \\pm {err_str})$";
+            u_disp = display_unit(unit);
+            line = f"${var_clean} = ({mean_str} \\pm {err_str})\\,\\mathrm{{{u_disp}}}$";
             lines.append(line);
 
         return lines;

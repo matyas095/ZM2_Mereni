@@ -1,4 +1,3 @@
-import numpy as np;
 from objects.measurement import Measurement;
 from objects.measurement_set import MeasurementSet;
 
@@ -120,7 +119,8 @@ class InputParser:
 
         ms = MeasurementSet();
         for name, unit in headers:
-            display_name = f"{name} [{unit}]" if unit else name;
+            unit_clean = unit.strip() if unit else "";
+            display_name = f"{name} [{unit_clean if unit_clean else '-'}]";
             u_b = u_B_map.get(name, u_B_map.get(display_name, 0.0));
             ms.add(Measurement(display_name, columns[name], u_B=u_b));
 

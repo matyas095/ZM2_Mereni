@@ -1,4 +1,3 @@
-import io;
 import re;
 from pathlib import Path;
 from utils import color_print;
@@ -32,36 +31,45 @@ class ConvertSoubor(Method):
         folder_path = Path(dir_name).resolve();
         folder_path.mkdir(parents=True, exist_ok=True);
 
-        with open(args.input) as f:
-            f = io.StringIO(f.read());
+        with open(args.input, encoding='utf-8') as f:
+            lines = [l for l in f.read().splitlines() if l.strip()];
 
-            header_labels = re.split(r'\s{2,}', f.readline().strip());
-            header_units = re.split(r'\s{2,}', f.readline().strip());
-            labels = header_labels[0].strip().split('\t');
-            units = header_units[0].strip().split('\t');
+        if len(lines) < 2:
+            raise Exception("Soubor má méně než 2 řádky");
 
+        # Detekce formátu: CASSY má hlavičku s "(...)" na druhém řádku (první je metadata)
+        if '(' in lines[1] and ')' in lines[1]:
+            combined_headers = [x.strip() for x in lines[1].split('\t') if x.strip()];
+            data_start = 2;
+        else:
+            labels = [x.strip() for x in lines[0].split('\t') if x.strip()];
+            units = [x.strip() for x in lines[1].split('\t') if x.strip()];
             combined_headers = [f"{label} ({unit})" for label, unit in zip(labels, units)];
+            data_start = 2;
 
-            import pandas as pd;
-            df = pd.read_csv(f, sep='\t', decimal=',', skiprows=2, names=combined_headers);
+        toWrite = {h: [] for h in combined_headers};
+        for raw in lines[data_start:]:
+            cells = [c.strip().replace(',', '.') for c in raw.split('\t')];
+            for i, h in enumerate(combined_headers):
+                if i < len(cells) and cells[i]:
+                    toWrite[h].append(cells[i]);
 
-            toWrite = {};
-            for _, row in df.iterrows():
-                for key in combined_headers:
-                    if key not in toWrite: toWrite[key] = [];
-                    toWrite[key].append(row[key]);
-
-            ms = MeasurementSet();
-            all_lines = [];
-            for rowKey in toWrite:
-                str_list = [str(val) for val in toWrite[rowKey]];
-                match = re.search(r'\(([^\)]+)\)', rowKey);
-                if match: key = match.group(1);
-                else: raise Exception("Chyba v klici");
-
-                line = f'{key}={",".join(str_list)}';
-                all_lines.append(line);
+        ms = MeasurementSet();
+        all_lines = [];
+        for rowKey in combined_headers:
+            match = re.match(r'\s*([^\s(]+)\s*\(([^)]*)\)', rowKey);
+            if match:
+                var_name = match.group(1).strip();
+                unit = match.group(2).strip();
+                key = f"{var_name} [{unit}]" if unit else var_name;
+            else:
+                key = rowKey.strip();
+            line = f'{key}={",".join(toWrite[rowKey])}';
+            all_lines.append(line);
+            try:
                 ms.add(Measurement(key, [float(v) for v in toWrite[rowKey]]));
+            except ValueError:
+                pass;
 
         if returnFile:
             return ms;

@@ -1,5 +1,4 @@
 import math;
-import json;
 import numpy as np;
 from utils import color_print;
 from statisticke_vypracovani.base import Method;

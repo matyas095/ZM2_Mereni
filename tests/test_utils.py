@@ -4,8 +4,7 @@ import sys;
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 
-from utils import extract_variables, parse_rovnice, r2_score, return_Cislo_Krat_10_Na, try_convert;
-import numpy as np;
+from utils import extract_variables, parse_rovnice, r2_score, return_Cislo_Krat_10_Na;
 
 class TestExtractVariables(unittest.TestCase):
 

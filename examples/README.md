@@ -1,25 +1,25 @@
 # Příklady použití
 
-V této složce jsou reálné příklady workflow nástroje ZM2_Mereni pro jednotlivé úlohy ZM2.
+V této složce jsou reálné příklady workflow pro konkrétní úlohy ZM2 FJFI.
 
-## Struktura příkladů
+## 1 Struktura
 
 ```
 examples/
-├── termistor/          # Protokol #9 — závislost odporu termistoru na teplotě
+├── termistor/          # Úloha #9 — závislost odporu termistoru na teplotě
 │   ├── README.md       # Popis úlohy
 │   ├── data/           # Vstupní data (CASSY export)
-│   └── commands.sh     # Kompletní workflow
+│   └── commands.sh     # Workflow — posloupnost příkazů
 └── ...
 ```
 
-## Jak používat
+## 2 Použití
 
-Každý příklad obsahuje `commands.sh` s posloupností příkazů, které vedou ke kompletnímu zpracování dané úlohy. Stačí vstoupit do adresáře a skript spustit:
+Každý příklad obsahuje `commands.sh` s posloupností příkazů vedoucí ke kompletnímu zpracování dané úlohy. Stačí vstoupit do adresáře a skript spustit:
 
 ```bash
 cd examples/termistor
 bash commands.sh
 ```
 
-Výstupy se uloží do podsložek `latex_output/`, `outputs/`, `grafy_metoda_graf/`.
+Výstupy se ukládají do podsložek `latex_output/`, `outputs/` a `grafy_metoda_graf/`.

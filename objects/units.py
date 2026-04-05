@@ -78,6 +78,12 @@ def format_name_unit(name: str, unit: str = None) -> str:
         return name;
     return f"{name} [{unit}]";
 
+def display_unit(unit) -> str:
+    """Vrátí unit nebo '-' pokud je prázdná/None."""
+    if unit is None or not str(unit).strip():
+        return "-";
+    return str(unit);
+
 def auto_scale_exponent(values) -> int:
     """Vrátí nejlepší SI exponent (násobek 3) pro danou sadu hodnot."""
     import math;

@@ -98,7 +98,11 @@ class MeasurementSet:
         folder_path = Path(dir_name).resolve();
         folder_path.mkdir(parents=True, exist_ok=True);
 
-        headers = [f"${m.name}$" for m in self.measurements];
+        from objects.units import extract_name_unit as _eu, display_unit as _du;
+        def _latex_header(name):
+            var, unit = _eu(name);
+            return f"${var} [{_du(unit)}]$";
+        headers = [_latex_header(m.name) for m in self.measurements];
         body = [];
         for m in self.measurements:
             p = max(m.precision, 1);
@@ -123,12 +127,15 @@ class MeasurementSet:
         caption_parts = [];
         if source_file:
             caption_parts.append(os.path.basename(source_file));
+        from objects.units import extract_name_unit, display_unit;
         for m in self.measurements:
             p = max(m.precision, 1);
             mean_str = f"{round(m.mean, p):.{p}f}".replace(".", _dec_sep());
             err_str = f"{round(m.u_c, p):.{p}f}".replace(".", _dec_sep());
-            clean_name = m.name.replace("$", "");
-            caption_parts.append(f"${clean_name} = ({mean_str} \\pm {err_str})$");
+            var, unit = extract_name_unit(m.name);
+            var_clean = var.replace("$", "");
+            u_disp = display_unit(unit);
+            caption_parts.append(f"${var_clean} = ({mean_str} \\pm {err_str})\\,\\mathrm{{{u_disp}}}$");
         caption = " \\\\ ".join(caption_parts);
         from utils import balance_math_braces;
         caption = balance_math_braces(caption);

@@ -2,7 +2,7 @@ import numpy as np;
 import matplotlib.pyplot as plt;
 from pathlib import Path;
 from sympy import symbols, lambdify;
-from utils import clean_latex, smart_parse, print_graf_saved;
+from utils import smart_parse, print_graf_saved;
 from statisticke_vypracovani.base import Method;
 
 class GrafInterval(Method):

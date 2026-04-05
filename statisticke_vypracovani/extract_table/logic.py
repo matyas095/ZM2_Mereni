@@ -1,4 +1,3 @@
-import re;
 from pathlib import Path;
 from utils import color_print;
 from statisticke_vypracovani.base import Method;

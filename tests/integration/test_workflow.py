@@ -7,9 +7,7 @@ import shutil;
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))));
 
 from objects.input_parser import InputParser;
-from objects.measurement_set import MeasurementSet;
 from statisticke_vypracovani.join_tables.logic import JoinTables;
-from statisticke_vypracovani.format_table.logic import FormatTable;
 from statisticke_vypracovani.extract_table.logic import ExtractTable;
 
 BASE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));

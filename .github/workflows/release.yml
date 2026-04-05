@@ -329,35 +329,40 @@ jobs:
           body: |
             # ZM2_Mereni ${{ github.ref_name }}
 
-            CLI nástroj pro statistické zpracování fyzikálních laboratorních měření.
+            Nástroj pro statistické zpracování fyzikálních laboratorních měření (ZM2 FJFI ČVUT).
 
-            ## Ke stažení
+            ## Stažení
 
-            | Balík | Linux | Windows | Popis |
-            |-------|-------|---------|-------|
-            | **Statistika** | `statistika_*_linux.tar.gz` | `statistika_*_windows.zip` | Výpočty (průměr, chyba, propagace) |
-            | **Grafy** | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` | Grafy (2D/3D, interval) |
+            | Balík | Linux | Windows |
+            |-------|-------|---------|
+            | **Statistika** (výpočty) | `statistika_*_linux.tar.gz` | `statistika_*_windows.zip` |
+            | **Grafy** (vizualizace) | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` |
 
-            ## Metody — Statistika
-            | Metoda | Popis |
-            |--------|-------|
-            | `aritmeticky_prumer` | Aritmetický průměr + chyba (typ A + B, outliers, SI převody) |
+            ## Metody
+
+            **Statistika** (8 metod)
+
+            | Metoda | Co dělá |
+            |--------|---------|
+            | `aritmeticky_prumer` | Průměr + chyba (typ A, B, kombinovaná dle GUM) |
             | `neprima_chyba` | Propagace chyby přes parciální derivace |
-            | `vazeny_prumer` | Vážený průměr s nejistotami |
-            | `convert_soubor` | Konverze tabulky do formátu `PROMĚNNÁ=data` |
+            | `vazeny_prumer` | Vážený průměr pro měření s rozdílnou přesností |
             | `derivace` | Numerická derivace (central differences) |
-            | `join_tables` | Spojení dvou LaTeX tabulek |
-            | `format_table` | Úprava existující LaTeX tabulky |
+            | `convert_soubor` | Konverze TSV/CASSY do formátu `VELIČINA=data` |
+            | `join_tables` | Spojení dvou LaTeX tabulek (horizontal / match) |
+            | `format_table` | Úprava LaTeX tabulky (jednotky, caption, precision, subtables) |
             | `extract_table` | Extrakce dat z LaTeX tabulky zpět |
 
-            ## Metody — Grafy
-            | Metoda | Popis |
-            |--------|-------|
-            | `graf` | 2D/3D grafy s fitem, chi-squared, rezidua |
-            | `graf_interval` | Graf funkce na intervalu |
-            | `histogram` | Histogram rozdělení + Gaussovka |
+            **Grafy** (3 metody)
+
+            | Metoda | Co dělá |
+            |--------|---------|
+            | `graf` | 2D/3D grafy s fitem, chi-squared, panel reziduí |
+            | `graf_interval` | Graf funkce na zadaném intervalu |
+            | `histogram` | Histogram rozdělení s proloženou Gaussovkou |
 
             ## Použití
+
             ```bash
             # Linux
             tar -xzf statistika_${{ github.ref_name }}_linux.tar.gz
@@ -365,13 +370,30 @@ jobs:
 
             # Windows
             .\statistika\statistika.exe -h
+
+            # Přehled podporovaných SI jednotek
+            ./statistika --list-units
             ```
 
+            ## Co je nového
+
+            - Nejistota typu B s podporou rovnoměrného, trojúhelníkového a normálního rozdělení
+            - Detekce a odstranění outlierů (3σ, 2σ, N-σ, IQR)
+            - Převod jednotek mezi SI prefixy (`--si-normalize`, `--convert-units`)
+            - Chi-squared statistika s p-hodnotou a nejistotami parametrů fitu
+            - CASSY parser s autodetekcí formátu a desetinnou čárkou
+            - LaTeX tabulky s auto-captionem, subtables a desetinnou čárkou
+            - Konfigurační soubor `.zm2rc` pro výchozí hodnoty
+            - Batch režim pro hromadné zpracování souborů
+
+            Podrobný přehled změn v [CHANGELOG.md](https://github.com/matyas095/ZM2_Mereni/blob/main/CHANGELOG.md).
+
             > [!WARNING]
-            > Desetinná čísla se zapisují s tečkou (např. `34.23`), čárka je oddělovač dat.
+            > V datových souborech (formát `VELIČINA=data`) používáme desetinnou tečku, čárka je oddělovač hodnot. V LaTeX výstupu se čísla převádí na desetinnou čárku.
 
             ### Instalace certifikátu
-            Pro odstranění varování spusťte přiložený skript `install_trust` jako administrátor.
+
+            Pro odstranění varování Windows/Linux spustíme přiložený skript `install_trust` jako administrátor.
           files: |
             statistika-linux/*.tar.gz
             grafy-linux/*.tar.gz
@@ -386,4 +408,4 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "Build dokončen pro verzi ${{ github.ref_name }} — Statistika + Grafy (Python 3.12)"
+          content: "Release ${{ github.ref_name }} dokončen — Statistika + Grafy (Linux + Windows)"

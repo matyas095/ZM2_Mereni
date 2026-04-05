@@ -1,14 +1,14 @@
 # Shell completion
 
-Nástroj podporuje tab-completion pro bash a zsh prostřednictvím knihovny `argcomplete`.
+Nástroj podporuje tab-completion pro bash a zsh přes knihovnu `argcomplete`.
 
-## Instalace
+## 1 Instalace
 
 ```bash
 pip install argcomplete
 ```
 
-## Aktivace (bash)
+## 2 Aktivace pro bash
 
 Pro aktuální session:
 ```bash
@@ -20,14 +20,14 @@ Pro trvalé povolení přidáme do `~/.bashrc`:
 echo 'eval "$(register-python-argcomplete ~/cesta/k/ZM2_Mereni/main.py)"' >> ~/.bashrc
 ```
 
-## Aktivace (zsh)
+## 3 Aktivace pro zsh
 
 ```bash
 autoload -U bashcompinit && bashcompinit
 eval "$(register-python-argcomplete main.py)"
 ```
 
-## Použití
+## 4 Použití
 
 ```bash
 $ python3 main.py arit<TAB>

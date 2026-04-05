@@ -1,35 +1,26 @@
 import math;
-import numpy as np;
-from pathlib import Path;
-from itertools import zip_longest;
-from utils import color_print;
+import json;
 from statisticke_vypracovani.base import Method;
+from objects.input_parser import InputParser;
 
-def APPEND_ARR_NUMPY(arr: np.ndarray, val):
-    """
-    Parameters:
-    -----------
-        arr - numpy.array
-        val - valued to be appended
-
-    Example
-    -------
-    >>> APPEND_ARR_NUMPY(array, 3);
-    """
-    return np.append(arr, val);
-
-def try_convert(s):
-    """
-    Tries to convert a string to int, then float, then returns as-is.
-    """
-    if not isinstance(s, str): return s;
-    try:
-        return int(s);
-    except ValueError:
-        try:
-            return float(s);
-        except ValueError:
-            return s;
+def _parse_typ_b(raw) -> dict:
+    """Parsuje --typ-b JSON do u_B_map. Podporuje číslo nebo [číslo, rozdělení]."""
+    if not raw:
+        return {};
+    if isinstance(raw, str):
+        raw = json.loads(raw);
+    u_B_map = {};
+    for key, val in raw.items():
+        if isinstance(val, list):
+            a, rozlozeni = val[0], val[1] if len(val) > 1 else "rovnomerne";
+            match rozlozeni:
+                case "rovnomerne":      u_B_map[key] = a / math.sqrt(3);
+                case "trojuhelnikove":   u_B_map[key] = a / math.sqrt(6);
+                case "normalni":         u_B_map[key] = a / 2;
+                case _:                  u_B_map[key] = float(a);
+        else:
+            u_B_map[key] = float(val);
+    return u_B_map;
 
 class AritmetickyPrumer(Method):
     name = "aritmeticky_prumer";
@@ -48,93 +39,165 @@ class AritmetickyPrumer(Method):
                 "help": "Vypíše data do tabulek v LaTeXu.",
                 "required": False,
                 "action": "store_true"
+            },
+            {
+                "flags": ["-tb", "--typ-b"],
+                "help": "Nejistota typu B jako JSON: '{\"R\": 0.01}' nebo '{\"R\": [0.01, \"rovnomerne\"]}'",
+                "required": False,
+                "type": json.loads
+            },
+            {
+                "flags": ["-ol", "--outliers"],
+                "help": "Odstranění outlierů: '3sigma' (výchozí), '2sigma', 'iqr'",
+                "required": False,
+                "type": str,
+                "const": "3sigma",
+                "nargs": "?"
+            },
+            {
+                "flags": ["--caption"],
+                "help": "Vlastní caption pro LaTeX tabulku (jinak auto-generace)",
+                "required": False,
+                "type": str
+            },
+            {
+                "flags": ["--label"],
+                "help": "Vlastní label pro LaTeX tabulku (bez tab: prefix)",
+                "required": False,
+                "type": str
+            },
+            {
+                "flags": ["--verbose"],
+                "help": "Vypisovat detaily parsování a výpočtů",
+                "required": False,
+                "action": "store_true"
+            },
+            {
+                "flags": ["--dry-run"],
+                "help": "Ukáže co by se udělalo ale nic nezapíše",
+                "required": False,
+                "action": "store_true"
+            },
+            {
+                "flags": ["--export-csv"],
+                "help": "Exportuje výsledky do CSV souboru",
+                "required": False,
+                "type": str
+            },
+            {
+                "flags": ["--batch"],
+                "help": "Glob pro zpracování více souborů najednou (např. 'input/*.txt')",
+                "required": False,
+                "type": str
+            },
+            {
+                "flags": ["--si-normalize"],
+                "help": "Převede jednotky na základní SI (mA → A, kV → V, ...)",
+                "required": False,
+                "action": "store_true"
+            },
+            {
+                "flags": ["--convert-units"],
+                "help": "Převede jednotky dle JSON: '{\"I\": \"A\", \"U\": \"mV\"}'",
+                "required": False,
+                "type": json.loads
             }
         ];
 
-    def run(self, args, doPrint = True):
-        if(isinstance(args, dict)):
-            result = [
-                [group, [try_convert(sub) for sub in args[group]]]
-                for group in args.keys()
-            ];
-            PROMENA = np.array(result, dtype=object);
+    def run(self, args, doPrint=True):
+        from objects.config import config;
+        cfg = config();
+
+        batch = getattr(args, 'batch', None) if not isinstance(args, dict) else None;
+        if batch:
+            import glob;
+            files = sorted(glob.glob(batch));
+            if not files:
+                from utils import color_print;
+                print(f"{color_print.RED}Žádné soubory neodpovídají: {batch}{color_print.END}");
+                return {};
+            print(f"Zpracovávám {len(files)} souborů...");
+            results = {};
+            for idx, f in enumerate(files, 1):
+                print(f"\n  [{idx}/{len(files)}] {f}");
+                args.input = f;
+                args.batch = None;
+                results[f] = self.run(args, doPrint);
+            return results;
+
+        u_B_map = {};
+        verbose = getattr(args, 'verbose', False) if not isinstance(args, dict) else False;
+        verbose = verbose or cfg.get("verbose", False);
+        dry_run = getattr(args, 'dry_run', False) if not isinstance(args, dict) else False;
+
+        if not isinstance(args, dict):
+            u_B_map = _parse_typ_b(getattr(args, 'typ_b', None));
+
+        if verbose:
+            from utils import color_print;
+            src = args if isinstance(args, dict) else args.input;
+            print(f"{color_print.DARKCYAN}[verbose]{color_print.END} Vstup: {src}");
+            if u_B_map:
+                print(f"{color_print.DARKCYAN}[verbose]{color_print.END} u_B_map: {u_B_map}");
+
+        if isinstance(args, dict):
+            data = InputParser.parse_dict(args, u_B_map);
         else:
-            with open(args.input) as f: # type: ignore
-                result = [
-                    [
-                        [try_convert(i) for i in sub][0] if len(sub) == 1
-                        else [try_convert(i) for i in sub]
-                        for sub in group
-                    ]
-                    for group in [[m.split(",") for m in x.split("=")] for x in f.read().split("\n") if x]
-                ]
-                PROMENA = np.array(result, dtype=object);   # arr[:, 0] - získá všechny klíče (před =);
-                                                            # arr[0, 1] - ziská první data v prvním řádku inputu
+            data = InputParser.from_file(args.input, u_B_map);
 
-        if(doPrint): print(f"Zpracovávám údaje pro hodnoty {', '.join(PROMENA[:, 0])}");
+        if verbose:
+            from utils import color_print;
+            print(f"{color_print.DARKCYAN}[verbose]{color_print.END} Načteno {len(data)} veličin: {', '.join(data.names)}");
+            for m in data:
+                print(f"{color_print.DARKCYAN}[verbose]{color_print.END}   {m.name}: n={m.n}, precision={m.precision}");
 
-        toPrint = {};
-        header = [];
-        body = [];
+        if not isinstance(args, dict):
+            if getattr(args, 'si_normalize', False):
+                data = data.si_normalize();
+                if verbose:
+                    from utils import color_print;
+                    print(f"{color_print.DARKCYAN}[verbose]{color_print.END} SI normalized: {', '.join(data.names)}");
+            conversions = getattr(args, 'convert_units', None);
+            if conversions:
+                data = data.convert_units(conversions);
+                if verbose:
+                    from utils import color_print;
+                    print(f"{color_print.DARKCYAN}[verbose]{color_print.END} Converted: {', '.join(data.names)}");
 
-        for obj in PROMENA:
-            key, data = obj;
-            if any(not isinstance(x, (int, float)) for x in data): raise ValueError(f"V datech s proměnnou {color_print.BOLD}{color_print.UNDERLINE}{key}{color_print.END} je někde string místo int/float.")
+        outliers_mode = getattr(args, 'outliers', None) if not isinstance(args, dict) else None;
+        if outliers_mode is None:
+            outliers_mode = cfg.get("default_outliers");
+        if outliers_mode:
+            from objects.measurement_set import MeasurementSet;
+            cleaned = MeasurementSet();
+            for m in data:
+                cleaned.add(m.remove_outliers(outliers_mode));
+            data = cleaned;
+            if verbose:
+                from utils import color_print;
+                total_removed = sum(len(m.removed_values) for m in data);
+                print(f"{color_print.DARKCYAN}[verbose]{color_print.END} Outlier mode: {outliers_mode}, odstraněno {total_removed}");
 
-            if(doPrint and getattr(args, 'latextable', None)):
-                header.append(key);
-                body.append([str(x) for x in data]);
+        if doPrint:
+            quiet = getattr(args, 'quiet', False) if not isinstance(args, dict) else False;
+            data.print_results(quiet=quiet);
 
-            sum_Data = ( 1 / len(data) ) * sum(data);
-            odchylka = sum([(x - sum_Data) ** 2 for x in data]);
-            sigma_sum_Data = math.sqrt( odchylka / (len(data)*(len(data) - 1)));
-            toPrint[key] = [sum_Data, sigma_sum_Data];
+        if doPrint and getattr(args, 'latextable', None):
+            source = getattr(args, 'input', None) if not isinstance(args, dict) else None;
+            data.to_latex_table(
+                source_file=source,
+                custom_caption=getattr(args, 'caption', None),
+                custom_label=getattr(args, 'label', None),
+                dry_run=dry_run
+            );
 
-        if(doPrint):
-            if(getattr(args, 'latextable', None)):
-                dir_name = "latex_output";
+        export_csv = getattr(args, 'export_csv', None) if not isinstance(args, dict) else None;
+        if export_csv and not dry_run:
+            data.to_csv(export_csv);
+            from utils import color_print;
+            print(f"{color_print.GREEN}CSV exportováno:{color_print.END} {export_csv}");
+        elif export_csv and dry_run:
+            from utils import color_print;
+            print(f"{color_print.YELLOW}[DRY-RUN] CSV by bylo: {export_csv}{color_print.END}");
 
-                folder_path = Path(dir_name).resolve();
-                folder_path.mkdir(parents=True, exist_ok=True);
-
-                pairs = list(zip_longest(*body, fillvalue="-"));
-
-                latex_table_HEAD = (
-                    "\\begin{table}[H]\n"
-                    "\t\\centering\n"
-                    "\t\\small\n"
-                    "\t\\begin{tabular}{@{}" + "c" * len(header) + "@{}}\n"
-                    "\t\t\\toprule\n"
-                );
-                latex_table_END = (
-                    "\n\t\\end{tabular}\n"
-                    "\t\\caption{" + input("Jakej text chceš míti: ") + "}\n"
-                    "\t\\label{tab:" + input("Jakej label chceš míti: ") + "}\n"
-                    "\\end{table}"
-                );
-                math_header = [f"${h}$" for h in header];
-                col1_width = max(len(str(pair[0])) for pair in pairs + [(math_header[0],)]);
-
-                tex_File_Name = f"table_{'_'.join([x.split(' ')[0] for x in PROMENA[:, 0]])}.tex";
-                tex_File_Path = folder_path / tex_File_Name;
-
-                with open(tex_File_Path, "w", encoding="utf-8") as f:
-                    f.write(latex_table_HEAD);
-                    f.write("\t\t" + " & ".join([math_header[0].ljust(col1_width), math_header[1]]) + " \\\\ \\midrule\n");
-                    result_str = "\t\t" + " \\\\ \n\t\t".join([" & ".join(map(str, pair)) for pair in pairs]) + r" \\ \bottomrule";
-                    f.write(result_str);
-                    f.write(latex_table_END);
-                    print(color_print.GREEN + f"Soubor {tex_File_Name} uložen na adrese{color_print.END}");
-                    print("└──" + str(tex_File_Path));
-
-            for key, arr in toPrint.items():
-                print(color_print.BOLD + key + color_print.END);
-
-                for j, val in enumerate(arr):
-                    connector = "└──" if j == len(arr) - 1 else "├──";
-                    what = "Aritmetický průměr" if j == 0 else "Chyba aritmetického průměru";
-
-                    print(f"{connector}{color_print.UNDERLINE}{what}{color_print.END} = {val}");
-                print("-" * 100);
-
-        return toPrint;
+        return data.to_dict();

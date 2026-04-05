@@ -14,103 +14,191 @@ permissions:
   contents: write
 
 jobs:
-  build-linux:
+  build-statistika-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Install Build Tools
+      - name: Install
         run: |
           sudo apt-get update && sudo apt-get install -y upx
           pip install pyinstaller
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Build Linux Binary
+      - name: Build
         run: |
-          pyinstaller --onefile --noconfirm --clean \
+          pyinstaller --onedir --noconfirm --clean --strip \
           --name statistika_${{ github.ref_name }}_linux \
           --upx-dir /usr/bin \
           --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --add-data 'objects:objects' \
           --add-data 'utils.py:.' \
+          --add-data 'main.py:.' \
           --exclude-module IPython --exclude-module notebook \
           --exclude-module test --exclude-module tests \
+          --exclude-module sklearn --exclude-module scikit-learn \
+          --exclude-module pyarrow \
+          --exclude-module matplotlib --exclude-module mpl_toolkits \
+          --exclude-module PIL --exclude-module Pillow --exclude-module pillow \
+          --exclude-module tkinter --exclude-module _tkinter \
+          --exclude-module pandas --exclude-module openpyxl \
+          --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver \
+          --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks \
           --collect-submodules sympy \
-          --collect-submodules matplotlib \
           --collect-submodules scipy \
-          --collect-submodules sklearn \
-          --hidden-import PIL._tkinter_finder \
-          --hidden-import tkinter \
           --hidden-import sympy.parsing.latex \
-          --hidden-import sklearn \
-          --hidden-import matplotlib.backends.backend_tkagg \
+          --hidden-import sympy.parsing.sympy_parser \
+          --hidden-import scipy.optimize \
+          --hidden-import scipy.stats \
+          --hidden-import scipy.linalg \
           --hidden-import statisticke_vypracovani.base \
-          main.py
+          --hidden-import objects.measurement \
+          --hidden-import objects.measurement_set \
+          --hidden-import objects.input_parser \
+          --hidden-import objects.config \
+          --hidden-import objects.units \
+          main_statistika.py
 
-      - name: Package Linux
+      - name: UPX & Cleanup
         run: |
-          cat <<EOF > dist/install_trust_linux.sh
-          #!/bin/bash
-          if [ "\$EUID" -ne 0 ]; then
-            sudo "\$0" "\$@"
-            exit \$?
-          fi
-          cp *.crt /usr/local/share/ca-certificates/
-          update-ca-certificates
-          EOF
-          chmod +x dist/install_trust_linux.sh
-          cp security/matyas095Gameing_public.crt dist/
+          find dist/ -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/statistika_${{ github.ref_name }}_linux -name "*.so" -o -name "*.so.*" | while read f; do
+            upx -1 --quiet "$f" 2>/dev/null || true
+          done
+
+      - name: Package
+        run: |
+          cp security/matyas095Gameing_public.crt dist/statistika_${{ github.ref_name }}_linux/
           tar -czf statistika_${{ github.ref_name }}_linux.tar.gz -C dist .
 
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: linux-artifact
+          name: statistika-linux
           path: statistika_${{ github.ref_name }}_linux.tar.gz
 
-  build-windows:
-    runs-on: windows-latest
+  build-grafy-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Install Dependencies
+      - name: Install
+        run: |
+          sudo apt-get update && sudo apt-get install -y upx
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build
+        run: |
+          pyinstaller --onedir --noconfirm --clean --strip \
+          --name statistika_grafy_${{ github.ref_name }}_linux \
+          --upx-dir /usr/bin \
+          --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --add-data 'objects:objects' \
+          --add-data 'utils.py:.' \
+          --add-data 'main.py:.' \
+          --exclude-module IPython --exclude-module notebook \
+          --exclude-module test --exclude-module tests \
+          --exclude-module sklearn --exclude-module scikit-learn \
+          --exclude-module pyarrow \
+          --exclude-module pandas --exclude-module openpyxl \
+          --exclude-module matplotlib.tests --exclude-module scipy.tests \
+          --exclude-module sympy.testing --exclude-module sympy.benchmarks \
+          --collect-submodules sympy \
+          --collect-submodules scipy \
+          --collect-submodules matplotlib \
+          --hidden-import sympy.parsing.latex \
+          --hidden-import sympy.parsing.sympy_parser \
+          --hidden-import scipy.optimize \
+          --hidden-import scipy.stats \
+          --hidden-import scipy.linalg \
+          --hidden-import matplotlib \
+          --hidden-import matplotlib.pyplot \
+          --hidden-import matplotlib.backends.backend_agg \
+          --hidden-import matplotlib.backends.backend_tkagg \
+          --hidden-import PIL._tkinter_finder \
+          --hidden-import tkinter \
+          --hidden-import statisticke_vypracovani.base \
+          --hidden-import objects.measurement \
+          --hidden-import objects.measurement_set \
+          --hidden-import objects.input_parser \
+          --hidden-import objects.config \
+          --hidden-import objects.units \
+          main_grafy.py
+
+      - name: UPX & Cleanup
+        run: |
+          find dist/ -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/statistika_grafy_${{ github.ref_name }}_linux -name "*.so" -o -name "*.so.*" | while read f; do
+            upx -1 --quiet "$f" 2>/dev/null || true
+          done
+
+      - name: Package
+        run: |
+          cp security/matyas095Gameing_public.crt dist/statistika_grafy_${{ github.ref_name }}_linux/
+          tar -czf statistika_grafy_${{ github.ref_name }}_linux.tar.gz -C dist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grafy-linux
+          path: statistika_grafy_${{ github.ref_name }}_linux.tar.gz
+
+  build-statistika-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
           if (Test-Path requirements.txt) { pip install -r requirements.txt }
 
-      - name: Build Windows EXE
+      - name: Build
         run: |
-          pyinstaller --onefile --noconfirm --clean `
+          pyinstaller --onedir --noconfirm --clean --strip `
           --icon builder/app_icon.ico --name statistika `
           --add-data "statisticke_vypracovani;statisticke_vypracovani" `
+          --add-data "objects;objects" `
           --add-data "utils.py;." `
+          --add-data "main.py;." `
           --exclude-module IPython --exclude-module notebook `
           --exclude-module test --exclude-module tests `
+          --exclude-module sklearn --exclude-module scikit-learn `
+          --exclude-module pyarrow `
+          --exclude-module matplotlib --exclude-module mpl_toolkits `
+          --exclude-module PIL --exclude-module Pillow --exclude-module pillow `
+          --exclude-module tkinter --exclude-module _tkinter `
+          --exclude-module pandas --exclude-module openpyxl `
+          --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver `
+          --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks `
           --collect-submodules sympy `
-          --collect-submodules matplotlib `
           --collect-submodules scipy `
-          --collect-submodules sklearn `
-          --hidden-import PIL._tkinter_finder `
-          --hidden-import tkinter `
           --hidden-import sympy.parsing.latex `
-          --hidden-import sklearn `
-          --hidden-import matplotlib.backends.backend_tkagg `
+          --hidden-import sympy.parsing.sympy_parser `
+          --hidden-import scipy.optimize `
+          --hidden-import scipy.stats `
+          --hidden-import scipy.linalg `
           --hidden-import statisticke_vypracovani.base `
-          main.py
+          --hidden-import objects.measurement `
+          --hidden-import objects.measurement_set `
+          --hidden-import objects.input_parser `
+          --hidden-import objects.config `
+          --hidden-import objects.units `
+          main_statistika.py
 
       - name: Sign EXE
         shell: pwsh
@@ -119,13 +207,15 @@ jobs:
           $certBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
           Set-Content -Path cert.pfx -Value $certBytes -AsByteStream
           osslsigncode sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" `
-          -n "Statistika Tool ${{ github.ref_name }}" -t http://timestamp.digicert.com `
-          -in dist/statistika.exe -out dist/statistika_${{ github.ref_name }}_signed.exe
+          -n "Statistika ${{ github.ref_name }}" -t http://timestamp.digicert.com `
+          -in dist/statistika/statistika.exe -out dist/statistika/statistika_signed.exe
+          Remove-Item dist/statistika/statistika.exe
+          Rename-Item dist/statistika/statistika_signed.exe statistika.exe
           Remove-Item cert.pfx
 
-      - name: Package Windows
+      - name: Package
         run: |
-          copy security\matyas095Gameing_public.crt dist\
+          copy security\matyas095Gameing_public.crt dist\statistika\
           $batch = @"
           @echo off
           cd /d "%~dp0"
@@ -134,21 +224,103 @@ jobs:
           echo Certificate installed successfully.
           pause
           "@
-          $batch | Out-File -FilePath dist\install_trust_windows.bat -Encoding ascii
-          Compress-Archive -Path dist\*_signed.exe, dist\*.crt, dist\*.bat -DestinationPath statistika_${{ github.ref_name }}_windows.zip
+          $batch | Out-File -FilePath dist\statistika\install_trust_windows.bat -Encoding ascii
+          Compress-Archive -Path dist\statistika -DestinationPath statistika_${{ github.ref_name }}_windows.zip
 
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: windows-artifact
+          name: statistika-windows
           path: statistika_${{ github.ref_name }}_windows.zip
 
+  build-grafy-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+
+      - name: Build
+        run: |
+          pyinstaller --onedir --noconfirm --clean --strip `
+          --icon builder/app_icon.ico --name statistika_grafy `
+          --add-data "statisticke_vypracovani;statisticke_vypracovani" `
+          --add-data "objects;objects" `
+          --add-data "utils.py;." `
+          --add-data "main.py;." `
+          --exclude-module IPython --exclude-module notebook `
+          --exclude-module test --exclude-module tests `
+          --exclude-module sklearn --exclude-module scikit-learn `
+          --exclude-module pyarrow `
+          --exclude-module pandas --exclude-module openpyxl `
+          --exclude-module matplotlib.tests --exclude-module scipy.tests `
+          --exclude-module sympy.testing --exclude-module sympy.benchmarks `
+          --collect-submodules sympy `
+          --collect-submodules scipy `
+          --collect-submodules matplotlib `
+          --hidden-import sympy.parsing.latex `
+          --hidden-import sympy.parsing.sympy_parser `
+          --hidden-import scipy.optimize `
+          --hidden-import scipy.stats `
+          --hidden-import scipy.linalg `
+          --hidden-import matplotlib `
+          --hidden-import matplotlib.pyplot `
+          --hidden-import matplotlib.backends.backend_agg `
+          --hidden-import matplotlib.backends.backend_tkagg `
+          --hidden-import PIL._tkinter_finder `
+          --hidden-import tkinter `
+          --hidden-import statisticke_vypracovani.base `
+          --hidden-import objects.measurement `
+          --hidden-import objects.measurement_set `
+          --hidden-import objects.input_parser `
+          --hidden-import objects.config `
+          --hidden-import objects.units `
+          main_grafy.py
+
+      - name: Sign EXE
+        shell: pwsh
+        run: |
+          choco install osslsigncode -y
+          $certBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
+          Set-Content -Path cert.pfx -Value $certBytes -AsByteStream
+          osslsigncode sign -pkcs12 cert.pfx -pass "${{ secrets.PFX_PASSWORD }}" `
+          -n "Statistika Grafy ${{ github.ref_name }}" -t http://timestamp.digicert.com `
+          -in dist/statistika_grafy/statistika_grafy.exe -out dist/statistika_grafy/statistika_grafy_signed.exe
+          Remove-Item dist/statistika_grafy/statistika_grafy.exe
+          Rename-Item dist/statistika_grafy/statistika_grafy_signed.exe statistika_grafy.exe
+          Remove-Item cert.pfx
+
+      - name: Package
+        run: |
+          copy security\matyas095Gameing_public.crt dist\statistika_grafy\
+          $batch = @"
+          @echo off
+          cd /d "%~dp0"
+          net session >nul 2>&1 || (echo Spustte jako administrator! & pause & exit)
+          certutil -addstore -f "Root" "matyas095Gameing_public.crt"
+          echo Certificate installed successfully.
+          pause
+          "@
+          $batch | Out-File -FilePath dist\statistika_grafy\install_trust_windows.bat -Encoding ascii
+          Compress-Archive -Path dist\statistika_grafy -DestinationPath statistika_grafy_${{ github.ref_name }}_windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grafy-windows
+          path: statistika_grafy_${{ github.ref_name }}_windows.zip
+
   create-release:
-    needs: [build-linux, build-windows]
+    needs: [build-statistika-linux, build-grafy-linux, build-statistika-windows, build-grafy-windows]
     runs-on: ubuntu-latest
     steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -159,24 +331,40 @@ jobs:
 
             CLI nástroj pro statistické zpracování fyzikálních laboratorních měření.
 
-            ## Dostupné metody
+            ## Ke stažení
+
+            | Balík | Linux | Windows | Popis |
+            |-------|-------|---------|-------|
+            | **Statistika** | `statistika_*_linux.tar.gz` | `statistika_*_windows.zip` | Výpočty (průměr, chyba, propagace) |
+            | **Grafy** | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` | Grafy (2D/3D, interval) |
+
+            ## Metody — Statistika
             | Metoda | Popis |
             |--------|-------|
-            | `aritmeticky_prumer` | Aritmetický průměr + chyba aritmetického průměru |
-            | `neprima_chyba` | Nepřímá chyba měření (propagace přes parciální derivace) |
-            | `graf` | 2D/3D grafy s fitem |
-            | `graf_interval` | Graf funkce na intervalu |
+            | `aritmeticky_prumer` | Aritmetický průměr + chyba (typ A + B, outliers, SI převody) |
+            | `neprima_chyba` | Propagace chyby přes parciální derivace |
+            | `vazeny_prumer` | Vážený průměr s nejistotami |
             | `convert_soubor` | Konverze tabulky do formátu `PROMĚNNÁ=data` |
+            | `derivace` | Numerická derivace (central differences) |
+            | `join_tables` | Spojení dvou LaTeX tabulek |
+            | `format_table` | Úprava existující LaTeX tabulky |
+            | `extract_table` | Extrakce dat z LaTeX tabulky zpět |
+
+            ## Metody — Grafy
+            | Metoda | Popis |
+            |--------|-------|
+            | `graf` | 2D/3D grafy s fitem, chi-squared, rezidua |
+            | `graf_interval` | Graf funkce na intervalu |
+            | `histogram` | Histogram rozdělení + Gaussovka |
 
             ## Použití
             ```bash
             # Linux
-            ./statistika_${{ github.ref_name }}_linux <metoda> [argumenty]
-            ./statistika_${{ github.ref_name }}_linux -h
+            tar -xzf statistika_${{ github.ref_name }}_linux.tar.gz
+            ./statistika_${{ github.ref_name }}_linux/statistika -h
 
             # Windows
-            .\statistika.exe <metoda> [argumenty]
-            .\statistika.exe -h
+            .\statistika\statistika.exe -h
             ```
 
             > [!WARNING]
@@ -185,8 +373,10 @@ jobs:
             ### Instalace certifikátu
             Pro odstranění varování spusťte přiložený skript `install_trust` jako administrátor.
           files: |
-            linux-artifact/*.tar.gz
-            windows-artifact/*.zip
+            statistika-linux/*.tar.gz
+            grafy-linux/*.tar.gz
+            statistika-windows/*.zip
+            grafy-windows/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN_MAT }}
 
@@ -196,4 +386,4 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "Build dokončen pro verzi ${{ github.ref_name }} (Python 3.12)"
+          content: "Build dokončen pro verzi ${{ github.ref_name }} — Statistika + Grafy (Python 3.12)"

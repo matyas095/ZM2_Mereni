@@ -1,16 +1,15 @@
-# PyInstaller folders
+# PyInstaller
 build/
 dist/
 release/
+builder/compiled/
+builder/release_simulation/
 *.spec
 
-# Security / Certificates (DO NOT SHARE THESE ON GITHUB)
+# Security — privátní klíče (veřejný certifikát JE v repu)
 *.pfx
-*.ps1
 *.pem
 cert_password.txt
-security/
-*.sh
 
 # Python cache
 __pycache__/
@@ -19,17 +18,18 @@ __pycache__/
 # Local environment
 .venv/
 .vscode/
-PYINSTALLER_CMD
-
-# Git
-.secrets
-deploy.sh
-
-# Trash
-*.xlsx
-get_requirements.py
-grafy_metoda_graf/
-*.tar
-latex_output/
-tester.py
 .idea/
+
+# Build/runtime výstupy
+grafy_metoda_graf/
+latex_output/
+outputs/
+
+# Dočasné soubory
+*.tar
+*.tar.gz
+PYINSTALLER_CMD
+.secrets
+tester.py
+grafy_metoda_graf
+.coveragerc

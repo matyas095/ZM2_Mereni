@@ -1,0 +1,36 @@
+name: CI
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install coverage
+
+      - name: Syntax check
+        run: |
+          python3 -m py_compile main.py main_statistika.py main_grafy.py utils.py
+          for f in statisticke_vypracovani/*/logic.py; do python3 -m py_compile "$f"; done
+          for f in objects/*.py; do python3 -m py_compile "$f"; done
+
+      - name: Tests with coverage
+        run: |
+          coverage run -m unittest discover tests -v
+          coverage report --omit="tests/*,.venv/*"
+          coverage html --omit="tests/*,.venv/*" -d htmlcov
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html
+          path: htmlcov/

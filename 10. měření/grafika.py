@@ -60,6 +60,8 @@ def convertFile(inpu_Paths):
                     'aritmeticky_prumer': aritmeticky_prumer,
                     'chyba_prumeru': chyba_prumeru
                 }
+                print(inpu.parts[-1], nazev)
+                print(vals)
     return hodnoty;
 
 

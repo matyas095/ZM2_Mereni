@@ -8,10 +8,11 @@ Statistické zpracování se nachází [zde](https://github.com/matyas095/ZM2_Me
 
 
 ## Rozpis měření
-- [Měření 7.](#měření-7---ohmův-zákon) - 12. 3. 26
-- [Měření 8.](#měření-8---velké-odpory-wheastonův-můstek-obilíkámen-můstek) - 19. 3. 26
-- [Měření 9.](#měření-9---závislost-odporu-termistoru-na-teplotě) - 26. 3. 26
+- [Měření 7.](#měření-7---ohmův-zákon)  - 12. 3. 26
+- [Měření 8.](#měření-8---velké-odpory-wheastonův-můstek-obilíkámen-můstek)  - 19. 3. 26
+- [Měření 9.](#měření-9---závislost-odporu-termistoru-na-teplotě)  - 26. 3. 26
 - [Měření 10.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie) - 2. 4. 26
+- [Měření 1.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie)  - 9. 4. 26
 
 ## Zápis měření
 
@@ -31,5 +32,9 @@ Všechny výpočty dělány ručně (kalkulátor incident)
 - Možná modularita grafu pro app
 
 ### Měření 10 - Vzduchová dráha, 2. Newtonův zákon a Zákon o Zachování Mechanické Energie
+- Grafy
+- Výpočty
+- 
+### Měření 1 - Voltampérová charakteristika diod
 - Grafy
 - Výpočty

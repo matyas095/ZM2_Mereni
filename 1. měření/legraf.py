@@ -7,10 +7,9 @@ import numpy as np;
 import math;
 import matplotlib.pyplot as plt;
 import os;
+from scipy.optimize import curve_fit;
 import sys;
 import json;
-
-from pandas.core.array_algos import replace
 
 parent_dir = Path(__file__).resolve().parent;
 script_dir = parent_dir / "grafy";
@@ -38,8 +37,9 @@ class color_print:
 def return_Cislo_Krat_10_Na(x):
     exponent = math.floor(math.log10(abs(x)));
     zaklad = x / 10 ** exponent;
+    zakladZaokr = f"{zaklad:.1f}".replace(".", ",");
 
-    return f"{zaklad:.3f} * 10^{exponent}";
+    return f"{zakladZaokr} * 10^{exponent}";
 
 
 def convertFile(inpu_Paths):
@@ -73,7 +73,7 @@ def doGraph_SCATTER(x_Range, y_Range, x_Key, y_Key, title):
     # plt.plot(t, fit(t, k, q), 'b-',
     #          label=f'Fit přímky ($k={return_Cislo_Krat_10_Na(k)}$, $q={return_Cislo_Krat_10_Na(q)}$)');
     # plt.xticks(x);
-    plt.scatter(x_Range, y_Range, color='blue', s=10, label='Naměřená data');
+    # plt.scatter(x_Range, y_Range, color='blue', s=10, label='Naměřená data', zorder=5);
 
     plt.xlabel(f'{x_Key}');
     plt.ylabel(f'{y_Key}');
@@ -83,10 +83,26 @@ def doGraph_SCATTER(x_Range, y_Range, x_Key, y_Key, title):
 
 
 def save_Graph_And_Leave(nameFile):
+    plt.legend();
+    plt.grid(True, alpha=0.3);
     plt.savefig(f'{script_dir}/{nameFile}.svg', format='svg', bbox_inches='tight');
     print(f"Graf se jménem {nameFile} se uložil do souboru:\n└──{script_dir}/{nameFile}.svg");
     # plt.show();
     plt.close();
+
+def shockley_model(Vd, Is, n):
+    Vt = 0.0252;
+    return Is * (np.exp(Vd / (n *Vt)) - 1);
+
+
+def vypocitej_chybu_I(Vd, Is, n, Is_err, n_err):
+    Vt = 0.0252;
+
+    dI_dIs = np.exp(Vd / (n * Vt)) - 1;
+
+    dI_dn = Is * np.exp(Vd / (n * Vt)) * (-Vd / (n ** 2 * Vt));
+
+    return np.sqrt((dI_dIs * Is_err) ** 2 + (dI_dn * n_err) ** 2);
 
 
 def main():
@@ -101,8 +117,56 @@ def main():
     for key, val in files.items():
         I = val["I [A]"];
         U = val["U [V]"];
-        print(I, U)
 
+        # ln(I) = ln(I_s) + V_d / (n * V_t); kde a = 1 / (n * V_t)
+        Vt = 0.0252; #25,2 mV
+        mask_LN_I = I["hodnoty"] > 0
+        ln_I = np.log(I["hodnoty"][mask_LN_I]);
+        # a, b = np.polyfit(U["hodnoty"][mask], ln_I[mask], 1);
+
+        """I_s = np.exp(b);
+        n = 1 / (a * Vt);"""
+        I = I["hodnoty"];
+        U = U["hodnoty"];
+
+        mask = I > 0
+        U_fit = U[mask];
+        I_fit = I[mask];
+
+        popt, pcov = curve_fit(shockley_model, U_fit, I_fit, p0=[1e-12, 3],
+                           bounds=([1e-20, 1], [1e-3, 10]));
+        Is_fit, n_fit = popt;
+
+        perr = np.sqrt(np.diag(pcov)) if pcov is not None else [np.nan, np.nan]
+
+        Is_err = perr[0];
+        n_err = perr[1];
+
+        U_model = np.linspace(min(U), max(U), 10000);
+        I_model = shockley_model(U_model, Is_fit, n_fit);
+        U_chyba = val["ERR_U"]["hodnoty"];
+        I_chyba = val["ERR_I"]["hodnoty"];
+
+        doGraph_SCATTER(U, I, "$U$ [V]", "$I$ [A]", key);
+        plt.plot(U_model, I_model, color='red', label=f'Proložení Shockleyovou rovnicí'); #  $I_s$=({return_Cislo_Krat_10_Na(Is_fit)} ± {return_Cislo_Krat_10_Na(Is_err)})
+
+        plt.errorbar(U, I,
+                     xerr=U_chyba,
+                     yerr=I_chyba,
+                     fmt='o',
+                     color='blue',
+                     ecolor='black',
+                     capsize=3,
+                     label='Naměřená data s chybou'
+        );
+
+        print(color_print.GREEN + color_print.BOLD + key + color_print.END);
+        print(f"├──{color_print.UNDERLINE}I_s{color_print.END}: ({Is_fit} ± {Is_err}) A");
+        print(f"└──{color_print.UNDERLINE}n{color_print.END}: ({n_fit} ± {n_err}) V");
+        print(f"{vypocitej_chybu_I(U, Is_fit, n_fit, Is_err, n_err)[-1]:.2e}")
+
+        save_Graph_And_Leave(key);
+        print("-------------------------------------------------------------------------------------------------------------------------------------------------------------")
 
 
 

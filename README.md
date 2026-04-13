@@ -56,6 +56,49 @@ python3 main.py <metoda> [argumenty] --output-format json
 python3 main.py --list-units
 ```
 
+### 2.1 Aliasy metod
+
+Každá metoda má krátký alias pro rychlejší psaní:
+
+| Metoda | Alias |
+|--------|-------|
+| `aritmeticky_prumer` | `ap` |
+| `neprima_chyba` | `nc` |
+| `vazeny_prumer` | `vp` |
+| `derivace` | `der` |
+| `regrese` | `reg` |
+| `convert_soubor` | `cs` |
+| `join_tables` | `jt` |
+| `format_table` | `ft` |
+| `extract_table` | `et` |
+| `graf` | `g` |
+| `graf_interval` | `gi` |
+| `histogram` | `hist` |
+
+Příklad: `python3 main.py ap -i data.txt` místo `python3 main.py aritmeticky_prumer -i data.txt`.
+
+### 2.2 Programatické API
+
+Nástroj je zároveň Python knihovnou — lze volat z jiného skriptu nebo Jupyter notebooku:
+
+```python
+import zm2
+
+# Z dictu
+result = zm2.aritmeticky_prumer({"U": [1.0, 2.0, 3.0]})
+# → {'U': [2.0, 0.5773]}
+
+# Ze souboru
+result = zm2.aritmeticky_prumer("data.txt", typ_b={"R": 0.01}, outliers="iqr")
+
+# Regrese
+r = zm2.regrese("data.txt")
+# → {'a': [2.0, 0.03], 'b': [0.05, 0.1], 'R2': 0.999, ...}
+
+# Graf
+zm2.graf("data.txt", name="Fit", fit="linearni", chi2=True)
+```
+
 Globální přepínače jsou dostupné pro každou metodu:
 
 | Přepínač | Popis |
@@ -298,7 +341,38 @@ R
 
 ---
 
-### 5.4 `derivace`
+### 5.4 `regrese`
+
+Lineární regrese bez grafického výstupu. Vhodná pro situace kdy potřebujeme jen koeficienty ± nejistoty a kovarianční matici, nikoli graf.
+
+```bash
+python3 main.py regrese -i data.txt
+python3 main.py regrese -i data.txt -x "U [V]" -y "I [mA]"
+python3 main.py regrese -i data.txt -s sigma  # s nejistotami pro chi-squared
+```
+
+**Výstup:**
+```
+Lineární regrese: y = a·x + b
+├──a = (2.00 ± 0.03)
+├──b = (0.05 ± 0.10)
+├──R² = 0.999319
+├──Cov(a,b) = -0.0027
+├──χ² = 5.23
+├──χ²_red = 1.05 (ν = 3)
+└──p-hodnota = 0.389
+```
+
+| Argument | Popis |
+|----------|-------|
+| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný) |
+| `-x`, `--x-col` | Sloupec nezávislé proměnné (výchozí: první) |
+| `-y`, `--y-col` | Sloupec závislé proměnné (výchozí: druhý) |
+| `-s`, `--sigma` | Sloupec s nejistotami y (pro chi-squared) |
+
+---
+
+### 5.5 `derivace`
 
 Numerická derivace dat metodou centrálních diferencí (funkce `numpy.gradient`). Užitečné například pro výpočet rychlosti ze záznamu polohy.
 
@@ -415,6 +489,7 @@ Přepínač `--append-stats` dopočítá z dat aritmetický průměr a střední
 | `--append-stats` | Přidá aritmetický průměr ± chybu do captionu |
 | `--no-caption-stats` | Vynutí vypnutí auto-statistik (pokud jsou v configu) |
 | `--auto-scale` | Automaticky zvolí vhodný SI prefix pro každý sloupec |
+| `--interactive` | Interaktivní režim pro postupnou úpravu parametrů |
 | `--dry-run` | Neukládat, jen zobrazit |
 
 ---
@@ -522,6 +597,7 @@ Hodnotu redukovaného χ² interpretujeme dle Tabulky 2.
 | `-f`, `--fit` | Typ fitu: `linearni`, `kvadraticky`, `exponencialni`, `mocninny` |
 | `--chi2` | Zobrazí chi-squared statistiku a panel reziduí |
 | `--plot-outliers` | Zvýrazní outliery červeně: `3sigma`, `iqr` atd. |
+| `--custom-fit` | Vlastní fit funkce (SymPy): `'a*sin(b*x+c)'` |
 
 ---
 
@@ -574,6 +650,7 @@ statisticke_vypracovani/
     join_tables/logic.py             # class JoinTables(Method) — spojování .tex tabulek
     derivace/logic.py                # class Derivace(Method) — numerická derivace
     format_table/logic.py            # class FormatTable(Method) — úprava .tex tabulky
+    regrese/logic.py                 # class Regrese(Method) — lineární regrese
     extract_table/logic.py           # class ExtractTable(Method) — extrakce dat z .tex zpět
     histogram/logic.py               # class Histogram(Method) — histogram + Gaussovka
     graf/logic.py             # class Graf(Method) + chi-squared
@@ -585,7 +662,9 @@ objects/
     input_parser.py                  # InputParser — parsování txt, xlsx, indent formátu, CASSY
     config.py                        # Config loader pro .zm2rc
 utils.py                             # Sdílené funkce (smart_parse, clean_latex, r2_score...)
-tests/                               # 141+ unit testů (+ integration/)
+tests/                               # 159+ unit testů (+ integration/)
+docs/                                # Sphinx dokumentace (make html)
+zm2/                                 # Programatické API
 examples/                            # Příklady workflow pro konkrétní úlohy
 ```
 
@@ -649,18 +728,34 @@ Podrobný návod v [docs/shell_completion.md](docs/shell_completion.md).
 
 ## 11 Příklady
 
-Reálné příklady workflow najdeme ve složce [`examples/`](examples/). Každá úloha obsahuje popis, vstupní data a `commands.sh` s kompletní posloupností příkazů.
+Reálné příklady workflow najdeme ve složce [`examples/`](examples/). Každá úloha obsahuje popis, vstupní data a `commands.sh` s kompletní posloupností příkazů:
 
-## 12 Závislosti
+- `termistor/` — Úloha #9, závislost odporu na teplotě
+- `ohmuv_zakon/` — Úloha #7, U-I charakteristika rezistoru
+- `wheatstone/` — Úloha #8, Wheatstoneův můstek
+- `kmity/` — Úloha #10, tlumené harmonické kmity
+
+## 12 Dokumentace (Sphinx)
+
+Projekt má scaffold pro generování HTML dokumentace z docstringů pomocí Sphinxu.
+
+```bash
+pip install sphinx
+cd docs
+make html
+# výstup v docs/_build/html/index.html
+```
+
+## 13 Závislosti
 
 - numpy, scipy, sympy, requests — jádro,
 - matplotlib, Pillow — grafy,
 - pandas, openpyxl — vstup ve formátu `.xlsx`.
 
-## 13 Historie změn
+## 14 Historie změn
 
 Přehled změn je uveden v souboru [CHANGELOG.md](CHANGELOG.md).
 
-## 14 Licence
+## 15 Licence
 
 Projekt je distribuován pod licencí [MIT](LICENSE).

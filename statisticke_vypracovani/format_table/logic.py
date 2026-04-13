@@ -9,6 +9,14 @@ class FormatTable(Method):
     name = "format_table";
     description = "Upraví existující LaTeX tabulku (jednotky, caption, precision, subtables)";
 
+    def validate(self, args) -> None:
+        import os;
+        inp = getattr(args, 'input', None);
+        if not inp:
+            raise ValueError("Chybí vstupní .tex soubor (-i)");
+        if not os.path.isfile(inp):
+            raise ValueError(f"Soubor '{inp}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -90,6 +98,12 @@ class FormatTable(Method):
             {
                 "flags": ["--auto-scale"],
                 "help": "Automaticky zvolí vhodný SI prefix pro každý sloupec",
+                "required": False,
+                "action": "store_true"
+            },
+            {
+                "flags": ["--interactive"],
+                "help": "Interaktivní náhled — umožňuje postupně měnit parametry",
                 "required": False,
                 "action": "store_true"
             }
@@ -244,7 +258,58 @@ class FormatTable(Method):
                 f.write("\t\\label{tab:" + label + "}\n");
                 f.write("\\end{table}\n");
 
-    def run(self, args):
+    def _interactive_loop(self, args):
+        """Jednoduchý interaktivní režim: opakovaně zobrazuje náhled a bere volby."""
+        print(f"{color_print.BOLD}format_table — interaktivní režim{color_print.END}");
+        print("Každá změna přepočítá náhled. 's' uloží, 'q' ukončí.\n");
+        while True:
+            print(f"{color_print.CYAN}Aktuální nastavení:{color_print.END}");
+            print(f"  si_normalize     = {getattr(args, 'si_normalize', False)}");
+            print(f"  auto_scale       = {getattr(args, 'auto_scale', False)}");
+            print(f"  precision        = {getattr(args, 'precision', None)}");
+            print(f"  decimal_separator= {getattr(args, 'decimal_separator', ',')}");
+            print(f"  caption          = {(getattr(args, 'caption', None) or '<auto>')[:50]}");
+            print(f"  label            = {getattr(args, 'label', None) or '<auto>'}");
+            print(f"  append_stats     = {getattr(args, 'append_stats', False)}");
+            print();
+            print("Volby: [n] si_normalize  [a] auto_scale  [p] precision  [d] dec. sep.");
+            print("       [c] caption       [l] label       [t] append_stats");
+            print("       [s] uložit        [q] zavřít");
+            choice = input("Volba: ").strip().lower();
+            if choice == "q":
+                return None;
+            elif choice == "s":
+                return args;
+            elif choice == "n":
+                args.si_normalize = not getattr(args, 'si_normalize', False);
+            elif choice == "a":
+                args.auto_scale = not getattr(args, 'auto_scale', False);
+            elif choice == "p":
+                try:
+                    args.precision = int(input("Precision (číslo): ").strip());
+                except ValueError:
+                    args.precision = None;
+            elif choice == "d":
+                sep = input("Oddělovač (, nebo .): ").strip();
+                if sep in (",", "."):
+                    args.decimal_separator = sep;
+            elif choice == "c":
+                args.caption = input("Nový caption: ").strip() or None;
+            elif choice == "l":
+                args.label = input("Nový label: ").strip() or None;
+            elif choice == "t":
+                args.append_stats = not getattr(args, 'append_stats', False);
+            print("");
+
+    def run(self, args: object, do_print: bool = True) -> dict:
+        if getattr(args, 'interactive', False):
+            result = self._interactive_loop(args);
+            if result is None:
+                print("Zrušeno uživatelem.");
+                return {};
+            args = result;
+            args.interactive = False;
+
         jt = JoinTables();
         col_spec, headers, rows, caption, label = jt._parse_tex(args.input);
 
@@ -284,12 +349,13 @@ class FormatTable(Method):
                 new_caption = balance_math_braces(new_caption);
 
         if getattr(args, 'dry_run', False):
-            print(f"{color_print.YELLOW}[DRY-RUN]{color_print.END}");
-            print(f"  Sloupce: {len(headers)} - {', '.join(headers)}");
-            print(f"  Řádků: {len(rows)}");
-            print(f"  Caption: {new_caption[:80]}{'...' if len(new_caption) > 80 else ''}");
-            print(f"  Label: tab:{new_label}");
-            return;
+            if do_print:
+                print(f"{color_print.YELLOW}[DRY-RUN]{color_print.END}");
+                print(f"  Sloupce: {len(headers)} - {', '.join(headers)}");
+                print(f"  Řádků: {len(rows)}");
+                print(f"  Caption: {new_caption[:80]}{'...' if len(new_caption) > 80 else ''}");
+                print(f"  Label: tab:{new_label}");
+            return {"headers": headers, "rows": rows, "caption": new_caption, "label": new_label};
 
         folder = Path("latex_output").resolve();
         folder.mkdir(parents=True, exist_ok=True);
@@ -297,5 +363,8 @@ class FormatTable(Method):
         rps = getattr(args, 'rows_per_subtable', 25) or 25;
         self._write_tex(output_path, col_spec, headers, rows, new_caption, new_label, rps);
 
-        print(f"{color_print.GREEN}Tabulka naformátována{color_print.END}: {output_path}");
-        print(f"└──sloupce: {len(headers)}, řádků: {len(rows)}");
+        if do_print:
+            print(f"{color_print.GREEN}Tabulka naformátována{color_print.END}: {output_path}");
+            print(f"└──sloupce: {len(headers)}, řádků: {len(rows)}");
+
+        return {"headers": headers, "rows": rows, "caption": new_caption, "label": new_label, "output": str(output_path)};

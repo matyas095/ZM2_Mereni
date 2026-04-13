@@ -9,6 +9,13 @@ class ConvertSoubor(Method):
     name = "convert_soubor";
     description = "Konverze tabulkového souboru do formátu PROMĚNNÁ=data";
 
+    def validate(self, args) -> None:
+        import os;
+        if not getattr(args, 'input', None):
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(args.input):
+            raise ValueError(f"Soubor '{args.input}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -26,7 +33,7 @@ class ConvertSoubor(Method):
             },
         ];
 
-    def run(self, args, returnFile=False):
+    def run(self, args, return_file=False):
         dir_name = "outputs";
         folder_path = Path(dir_name).resolve();
         folder_path.mkdir(parents=True, exist_ok=True);
@@ -71,7 +78,7 @@ class ConvertSoubor(Method):
             except ValueError:
                 pass;
 
-        if returnFile:
+        if return_file:
             return ms;
 
         output_name = getattr(args, 'output', 'output_convertor') + '.txt';

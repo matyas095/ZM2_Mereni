@@ -7,6 +7,14 @@ class ExtractTable(Method):
     name = "extract_table";
     description = "Vytáhne data z LaTeX tabulky zpět do formátu VELIČINA=data";
 
+    def validate(self, args) -> None:
+        import os;
+        inp = getattr(args, 'input', None);
+        if not inp:
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(inp):
+            raise ValueError(f"Soubor '{inp}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -38,7 +46,7 @@ class ExtractTable(Method):
             return format_name_unit(var, unit);
         return var;
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         jt = JoinTables();
         _, headers, rows, _, _ = jt._parse_tex(args.input);
 
@@ -66,7 +74,7 @@ class ExtractTable(Method):
             for h, vals in columns.items():
                 f.write(f"{h}=" + ",".join(vals) + "\n");
 
-        if doPrint:
+        if do_print:
             print(f"{color_print.GREEN}Data extrahována{color_print.END}: {output_path}");
             print(f"└──sloupce: {len(clean_headers)} ({', '.join(clean_headers)})");
             print(f"└──řádků:   {len(rows)}");

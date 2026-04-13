@@ -9,6 +9,19 @@ class GrafInterval(Method):
     name = "graf_interval";
     description = "Graf funkce na zadaném intervalu";
 
+    def validate(self, args) -> None:
+        if not getattr(args, 'name', None):
+            raise ValueError("Chybí název grafu (-n)");
+        if not getattr(args, 'rovnice', None):
+            raise ValueError("Chybí rovnice (-r)");
+        if "=" not in args.rovnice:
+            raise ValueError("V rovnici chybí oddělovač '='; Formát: 'VELIČINA=VZTAH'");
+        interval = getattr(args, 'interval', None);
+        if not interval or len(interval) != 2:
+            raise ValueError("Interval musí mít 2 hodnoty: -i POČÁTEK KONEC");
+        if interval[0] >= interval[1]:
+            raise ValueError(f"Neplatný interval [{interval[0]}, {interval[1]}]");
+
     def get_args_info(self):
         return [
             {
@@ -32,7 +45,7 @@ class GrafInterval(Method):
             }
         ];
 
-    def run(self, args):
+    def run(self, args: object, do_print: bool = True) -> dict:
         parsed_y, variables, nazev_rce = smart_parse(args.rovnice);
 
         start_int, end_int = args.interval;
@@ -55,5 +68,7 @@ class GrafInterval(Method):
         plt.legend();
         plt.savefig(f'{folder_path}/{args.name}.svg', format='svg', bbox_inches='tight');
         plt.show();
-        print_graf_saved(args.name, folder_path, f"{nazev_rce}={parsed_y}");
+        if do_print:
+            print_graf_saved(args.name, folder_path, f"{nazev_rce}={parsed_y}");
         plt.close();
+        return {"name": args.name, "path": str(folder_path / f"{args.name}.svg"), "interval": [start_int, end_int]};

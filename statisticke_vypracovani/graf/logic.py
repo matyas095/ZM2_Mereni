@@ -75,8 +75,28 @@ class Graf(Method):
                 "type": str,
                 "const": "3sigma",
                 "nargs": "?"
+            },
+            {
+                "flags": ["--custom-fit"],
+                "help": "Vlastní fit funkce ve formátu SymPy: 'a*sin(b*x+c)'",
+                "required": False,
+                "type": str
             }
         ];
+
+    def _compile_custom_fit(self, expr_str: str):
+        """Převede 'a*sin(b*x+c)' na numpy funkci a seznam parametrů."""
+        from sympy import symbols, lambdify;
+        from sympy.parsing.sympy_parser import parse_expr;
+        from utils import extract_variables;
+        all_vars = extract_variables(expr_str);
+        if "x" not in all_vars:
+            raise ValueError(f"Custom fit musí obsahovat proměnnou 'x': {expr_str}");
+        params = [v for v in all_vars if v != "x"];
+        sym_map = {name: symbols(name) for name in all_vars};
+        expr = parse_expr(expr_str, local_dict=sym_map);
+        fit_func = lambdify([symbols("x")] + [symbols(p) for p in params], expr, 'numpy');
+        return fit_func, params;
 
     def _print_fit_stats(self, popt, pcov, x, y, y_pred, sigma, fit_name):
         param_errors = np.sqrt(np.diag(pcov));
@@ -258,6 +278,41 @@ class Graf(Method):
         y_Range = np.array(y_m.values);
         y_key = y_m.name;
 
+        custom_fit_expr = getattr(args, 'custom_fit', None);
+        if custom_fit_expr:
+            fit_func_raw, params = self._compile_custom_fit(custom_fit_expr);
+            def fit_func(x, *p):
+                return fit_func_raw(x, *p);
+            fit_label = f"custom: {custom_fit_expr}";
+            if args.logaritmicky:
+                y_Range = np.log(y_Range);
+            aritm_result = aritm.run({x_key: list(x_m.values)}, False);
+            sigma = aritm_result[x_key][-1] / np.array(y_m.values) if aritm_result[x_key][-1] > 0 else None;
+            p0 = [1.0] * len(params);
+            popt, pcov = curve_fit(fit_func, x_Range, y_Range, p0=p0, sigma=sigma, absolute_sigma=bool(sigma is not None), maxfev=5000);
+            y_pred = fit_func(x_Range, *popt);
+            param_errors = np.sqrt(np.diag(pcov));
+            print(color_print.BOLD + f"Custom fit: {custom_fit_expr}" + color_print.END);
+            for name, val, err in zip(params, popt, param_errors):
+                print(f"├──{color_print.UNDERLINE}{name}{color_print.END} = {val:.4g} ± {err:.4g}");
+            print(f"└──{color_print.UNDERLINE}R²{color_print.END} = {r2_score(y_Range, y_pred):.6f}");
+            print("-" * 100);
+            label_text = f"Fit: {custom_fit_expr}";
+            plt.figure(figsize=(9, 6));
+            x_fit = np.linspace(x_Range.min(), x_Range.max(), 500);
+            plt.plot(x_fit, fit_func(x_fit, *popt), 'b-', label=label_text);
+            plt.plot(x_Range, y_Range, 'ro', label='Data');
+            plt.xlabel(f'{x_key}');
+            plt.ylabel(f'{y_key}');
+            plt.title(args.name);
+            plt.legend();
+            plt.grid(alpha=0.3);
+            plt.savefig(f'{pathToDir}/{args.name}.svg', format='svg', bbox_inches='tight');
+            plt.show();
+            plt.close();
+            print_graf_saved(args.name, pathToDir);
+            return;
+
         if args.fit:
             fit_func = MODELY_FITU[args.fit];
 
@@ -321,12 +376,23 @@ class Graf(Method):
         plt.close();
         print_graf_saved(args.name, pathToDir);
 
-    def run(self, args):
+    def validate(self, args) -> None:
+        import os;
+        if not getattr(args, 'input', None):
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(args.input):
+            raise ValueError(f"Soubor '{args.input}' neexistuje");
+        if not getattr(args, 'name', None):
+            raise ValueError("Chybí název grafu (-n)");
+
+    def run(self, args, do_print: bool = True) -> dict:
         data = InputParser.from_file(args.input);
 
         dir_name = "grafy_metoda_graf";
         folder_path = Path(dir_name).resolve();
         folder_path.mkdir(parents=True, exist_ok=True);
 
-        print(f"Zpracovávám údaje pro hodnoty {', '.join(data.names)}");
-        return self._prep_Plot(data, args, str(folder_path));
+        if do_print:
+            print(f"Zpracovávám údaje pro hodnoty {', '.join(data.names)}");
+        self._prep_Plot(data, args, str(folder_path));
+        return {"name": args.name, "path": str(folder_path / f"{args.name}.svg"), "n_series": len(data)};

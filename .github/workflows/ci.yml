@@ -20,13 +20,15 @@ jobs:
         run: |
           python3 -m py_compile main.py main_statistika.py main_grafy.py utils.py
           for f in statisticke_vypracovani/*/logic.py; do python3 -m py_compile "$f"; done
+          python3 -m py_compile statisticke_vypracovani/base.py
           for f in objects/*.py; do python3 -m py_compile "$f"; done
+          for f in zm2/*.py; do python3 -m py_compile "$f"; done
 
       - name: Tests with coverage
         run: |
           coverage run -m unittest discover tests -v
-          coverage report --omit="tests/*,.venv/*"
-          coverage html --omit="tests/*,.venv/*" -d htmlcov
+          coverage report --omit="tests/*,.venv/*,builder/*,zm2/*" --fail-under=70
+          coverage html --omit="tests/*,.venv/*,builder/*,zm2/*" -d htmlcov
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

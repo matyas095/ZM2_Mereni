@@ -39,6 +39,7 @@ python -m PyInstaller --onedir --noconfirm --clean --strip `
     --hidden-import objects.input_parser `
     --hidden-import objects.config `
     --hidden-import objects.units `
+    --hidden-import objects.logger `
     main_statistika.py
 
 Get-ChildItem -Path "dist/statistika/_internal" -Filter "*.dist-info" -Directory -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue

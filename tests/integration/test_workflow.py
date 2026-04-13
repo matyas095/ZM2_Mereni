@@ -86,7 +86,7 @@ $U [V]$ & $I [mA]$ \\\\ \\midrule
         args.input = self.tex_path;
         args.output = "out";
         args.keep_units = False;
-        result = et.run(args, doPrint=False);
+        result = et.run(args, do_print=False);
         self.assertIn("U", result);
         self.assertIn("I", result);
         self.assertEqual(result["U"], ["0.1", "0.2"]);
@@ -100,7 +100,7 @@ $U [V]$ & $I [mA]$ \\\\ \\midrule
         args.input = self.tex_path;
         args.output = "out";
         args.keep_units = True;
-        result = et.run(args, doPrint=False);
+        result = et.run(args, do_print=False);
         self.assertIn("U [V]", result);
         self.assertIn("I [mA]", result);
 

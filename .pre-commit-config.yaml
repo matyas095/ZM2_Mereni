@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: syntax-check
+        name: Kontrola syntaxe Python souborů
+        entry: bash -c 'python3 -m py_compile main.py main_statistika.py main_grafy.py utils.py && for f in statisticke_vypracovani/*/logic.py statisticke_vypracovani/base.py objects/*.py; do python3 -m py_compile "$f"; done'
+        language: system
+        pass_filenames: false
+        files: '\.py$'
+
+      - id: unit-tests
+        name: Unit testy
+        entry: python3 -m unittest discover tests
+        language: system
+        pass_filenames: false
+        files: '\.py$'

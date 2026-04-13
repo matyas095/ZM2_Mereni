@@ -9,6 +9,15 @@ class JoinTables(Method):
     name = "join_tables";
     description = "Horizontálně spojí dvě LaTeX tabulky (včetně caption a label)";
 
+    def validate(self, args) -> None:
+        import os;
+        inputs = getattr(args, 'input', None);
+        if not inputs or len(inputs) != 2:
+            raise ValueError("join_tables vyžaduje 2 vstupní soubory: -i IN1 IN2");
+        for f in inputs:
+            if not os.path.isfile(f):
+                raise ValueError(f"Soubor '{f}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -148,7 +157,7 @@ class JoinTables(Method):
 
         return new_headers, new_rows, warnings;
 
-    def run(self, args):
+    def run(self, args, do_print: bool = True) -> dict:
         import json;
         spec1, head1, rows1, cap1, lab1 = self._parse_tex(args.input[0]);
         spec2, head2, rows2, cap2, lab2 = self._parse_tex(args.input[1]);
@@ -279,6 +288,9 @@ class JoinTables(Method):
                 f.write("\t\\label{" + merged_label + "}\n");
                 f.write("\\end{table}\n");
 
-        print(f"{color_print.GREEN}Tabulky spojeny ({mode}){color_print.END}: {output_path}");
-        print(f"└──sloupce: {n_cols}");
-        print(info_line);
+        if do_print:
+            print(f"{color_print.GREEN}Tabulky spojeny ({mode}){color_print.END}: {output_path}");
+            print(f"└──sloupce: {n_cols}");
+            print(info_line);
+
+        return {"mode": mode, "cols": n_cols, "rows": len(merged_rows), "output": str(output_path)};

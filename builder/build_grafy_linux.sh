@@ -53,6 +53,7 @@ python3 -m PyInstaller --onedir --noconfirm --clean --strip \
     --hidden-import objects.input_parser \
     --hidden-import objects.config \
     --hidden-import objects.units \
+    --hidden-import objects.logger \
     main_grafy.py
 
 # Cleanup

@@ -68,6 +68,7 @@ echo "=== [CI] Build Statistika ==="
     --hidden-import objects.input_parser \
     --hidden-import objects.config \
     --hidden-import objects.units \
+    --hidden-import objects.logger \
     main_statistika.py 2>&1 | tail -3
 
 if command -v upx &>/dev/null; then
@@ -121,6 +122,7 @@ echo "=== [CI] Build Grafy ==="
     --hidden-import objects.input_parser \
     --hidden-import objects.config \
     --hidden-import objects.units \
+    --hidden-import objects.logger \
     main_grafy.py 2>&1 | tail -3
 
 if command -v upx &>/dev/null; then

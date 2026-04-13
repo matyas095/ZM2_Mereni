@@ -7,6 +7,21 @@ class VazenyPrumer(Method):
     name = "vazeny_prumer";
     description = "Vážený průměr s nejistotami jednotlivých měření";
 
+    def validate(self, args) -> None:
+        vals = getattr(args, 'values', None);
+        unc = getattr(args, 'uncertainties', None);
+        if not vals:
+            raise ValueError("Chybí hodnoty (-v, --values)");
+        if not unc:
+            raise ValueError("Chybí nejistoty (-u, --uncertainties)");
+        try:
+            n_v = len([x for x in vals.split(",") if x.strip()]);
+            n_u = len([x for x in unc.split(",") if x.strip()]);
+            if n_v != n_u:
+                raise ValueError(f"Počet hodnot ({n_v}) neodpovídá počtu nejistot ({n_u})");
+        except AttributeError:
+            return;
+
     def get_args_info(self):
         return [
             {
@@ -30,7 +45,7 @@ class VazenyPrumer(Method):
             }
         ];
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         values = np.array([float(x.strip()) for x in args.values.split(",")]);
         sigmas = np.array([float(x.strip()) for x in args.uncertainties.split(",")]);
         name = getattr(args, 'name', 'x') or 'x';
@@ -55,7 +70,7 @@ class VazenyPrumer(Method):
             }
         };
 
-        if doPrint:
+        if do_print:
             print(color_print.BOLD + name + color_print.END);
             print(f"├──{color_print.UNDERLINE}Vážený průměr{color_print.END} = {w_mean}");
             print(f"├──{color_print.UNDERLINE}Nejistota{color_print.END} = {w_sigma}");

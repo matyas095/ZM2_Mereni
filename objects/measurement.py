@@ -1,20 +1,27 @@
 import math;
+from typing import Optional, Union, Sequence;
 import numpy as np;
 from utils import color_print, return_Cislo_Krat_10_Na;
 
 class Measurement:
-    def __init__(self, name: str, values, u_B: float = 0.0):
+    name: str;
+    values: np.ndarray;
+    u_B: float;
+    removed_values: list;
+    original_n: int;
+
+    def __init__(self, name: str, values: Sequence[Union[int, float]], u_B: float = 0.0) -> None:
         self.name = name;
         self.values = np.array(values, dtype=float);
         self.u_B = u_B;
 
-        self._mean = None;
-        self._u_A = None;
-        self._u_c = None;
-        self._precision = None;
+        self._mean: Optional[float] = None;
+        self._u_A: Optional[float] = None;
+        self._u_c: Optional[float] = None;
+        self._precision: Optional[int] = None;
 
-        self.removed_values: list = [];
-        self.original_n: int = len(self.values);
+        self.removed_values = [];
+        self.original_n = len(self.values);
 
     @property
     def n(self) -> int:
@@ -143,7 +150,7 @@ class Measurement:
         base = f"{val} ({round(val, p):.{p}f})";
         return f"{base} {display_unit(unit)}";
 
-    def print_result(self, show_type_b: bool = False, quiet: bool = False):
+    def print_result(self, show_type_b: bool = False, quiet: bool = False) -> None:
         if quiet:
             if show_type_b or self.u_B > 0:
                 print(f"{self.name} {self.mean} {self.u_A} {self.u_B} {self.u_c}");
@@ -165,5 +172,5 @@ class Measurement:
             print(f"└──{color_print.UNDERLINE}Chyba aritmetického průměru{color_print.END} = {self._fmt(self.u_A)}");
         print("-" * 100);
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Measurement({self.name}, n={self.n}, mean={self.mean:.4g}, u_c={self.u_c:.4g})";

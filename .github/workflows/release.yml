@@ -61,6 +61,7 @@ jobs:
           --hidden-import objects.input_parser \
           --hidden-import objects.config \
           --hidden-import objects.units \
+          --hidden-import objects.logger \
           main_statistika.py
 
       - name: UPX & Cleanup
@@ -132,6 +133,7 @@ jobs:
           --hidden-import objects.input_parser \
           --hidden-import objects.config \
           --hidden-import objects.units \
+          --hidden-import objects.logger \
           main_grafy.py
 
       - name: UPX & Cleanup
@@ -198,6 +200,7 @@ jobs:
           --hidden-import objects.input_parser `
           --hidden-import objects.config `
           --hidden-import objects.units `
+          --hidden-import objects.logger `
           main_statistika.py
 
       - name: Sign EXE
@@ -282,6 +285,7 @@ jobs:
           --hidden-import objects.input_parser `
           --hidden-import objects.config `
           --hidden-import objects.units `
+          --hidden-import objects.logger `
           main_grafy.py
 
       - name: Sign EXE
@@ -340,26 +344,27 @@ jobs:
 
             ## Metody
 
-            **Statistika** (8 metod)
+            **Statistika** (9 metod)
 
-            | Metoda | Co dělá |
-            |--------|---------|
-            | `aritmeticky_prumer` | Průměr + chyba (typ A, B, kombinovaná dle GUM) |
-            | `neprima_chyba` | Propagace chyby přes parciální derivace |
-            | `vazeny_prumer` | Vážený průměr pro měření s rozdílnou přesností |
-            | `derivace` | Numerická derivace (central differences) |
-            | `convert_soubor` | Konverze TSV/CASSY do formátu `VELIČINA=data` |
-            | `join_tables` | Spojení dvou LaTeX tabulek (horizontal / match) |
-            | `format_table` | Úprava LaTeX tabulky (jednotky, caption, precision, subtables) |
-            | `extract_table` | Extrakce dat z LaTeX tabulky zpět |
+            | Metoda | Alias | Co dělá |
+            |--------|-------|---------|
+            | `aritmeticky_prumer` | `ap` | Průměr + chyba (typ A, B, kombinovaná dle GUM) |
+            | `neprima_chyba` | `nc` | Propagace chyby přes parciální derivace |
+            | `vazeny_prumer` | `vp` | Vážený průměr pro měření s rozdílnou přesností |
+            | `regrese` | `reg` | Lineární regrese bez grafu (a, b, R², kovariance, χ²) |
+            | `derivace` | `der` | Numerická derivace (central differences) |
+            | `convert_soubor` | `cs` | Konverze TSV/CASSY do formátu `VELIČINA=data` |
+            | `join_tables` | `jt` | Spojení dvou LaTeX tabulek (horizontal / match) |
+            | `format_table` | `ft` | Úprava LaTeX tabulky (jednotky, caption, precision, subtables) |
+            | `extract_table` | `et` | Extrakce dat z LaTeX tabulky zpět |
 
             **Grafy** (3 metody)
 
-            | Metoda | Co dělá |
-            |--------|---------|
-            | `graf` | 2D/3D grafy s fitem, chi-squared, panel reziduí |
-            | `graf_interval` | Graf funkce na zadaném intervalu |
-            | `histogram` | Histogram rozdělení s proloženou Gaussovkou |
+            | Metoda | Alias | Co dělá |
+            |--------|-------|---------|
+            | `graf` | `g` | 2D/3D grafy s fitem, chi-squared, panel reziduí, custom-fit |
+            | `graf_interval` | `gi` | Graf funkce na zadaném intervalu |
+            | `histogram` | `hist` | Histogram rozdělení s proloženou Gaussovkou |
 
             ## Použití
 
@@ -381,10 +386,14 @@ jobs:
             - Detekce a odstranění outlierů (3σ, 2σ, N-σ, IQR)
             - Převod jednotek mezi SI prefixy (`--si-normalize`, `--convert-units`)
             - Chi-squared statistika s p-hodnotou a nejistotami parametrů fitu
+            - Custom fit funkce v `graf` přes SymPy parser (`--custom-fit`)
+            - Nová metoda `regrese` pro lineární regresi bez grafu
             - CASSY parser s autodetekcí formátu a desetinnou čárkou
             - LaTeX tabulky s auto-captionem, subtables a desetinnou čárkou
             - Konfigurační soubor `.zm2rc` pro výchozí hodnoty
             - Batch režim pro hromadné zpracování souborů
+            - Programatické API (`import zm2`) pro volání z jiného Python kódu
+            - Aliasy metod (`ap`, `nc`, `reg`, ...) pro rychlejší psaní
 
             Podrobný přehled změn v [CHANGELOG.md](https://github.com/matyas095/ZM2_Mereni/blob/main/CHANGELOG.md).
 

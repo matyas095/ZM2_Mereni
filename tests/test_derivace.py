@@ -35,12 +35,12 @@ class TestDerivace(unittest.TestCase):
         return args;
 
     def test_x_squared_derivative(self):
-        result = self.der.run(self._make_args(), doPrint=False);
+        result = self.der.run(self._make_args(), do_print=False);
         self.assertIn("t", result);
         self.assertIn("dx/dt", result);
 
     def test_output_file_created(self):
-        self.der.run(self._make_args(output="myderiv"), doPrint=True);
+        self.der.run(self._make_args(output="myderiv"), do_print=True);
         self.assertTrue(os.path.exists(os.path.join(self.tmp, "outputs", "myderiv.txt")));
 
     def test_too_few_points(self):
@@ -48,7 +48,7 @@ class TestDerivace(unittest.TestCase):
             f.write("t=0,1\n");
             f.write("x=0,1\n");
         with self.assertRaises(ValueError):
-            self.der.run(self._make_args(), doPrint=False);
+            self.der.run(self._make_args(), do_print=False);
 
 
 if __name__ == "__main__":

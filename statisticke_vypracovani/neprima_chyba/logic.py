@@ -11,6 +11,18 @@ class NeprimaChyba(Method):
     name = "neprima_chyba";
     description = "Nepřímá chyba měření (propagace chyby přes parciální derivace)";
 
+    def validate(self, args) -> None:
+        import os;
+        if not getattr(args, 'input', None):
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(args.input):
+            raise ValueError(f"Soubor '{args.input}' neexistuje");
+        if args.input.endswith(".xlsx"):
+            if not getattr(args, 'rovnice', None):
+                raise ValueError("Pro .xlsx vstup je nutný flag -r [--rovnice]");
+            if "=" not in args.rovnice:
+                raise ValueError("V rovnici chybí oddělovač '='; Formát: 'VELIČINA=VZTAH'");
+
     def get_args_info(self):
         return [
             {
@@ -130,7 +142,7 @@ class NeprimaChyba(Method):
 
         return self._derivace(parsed);
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         match args.input:
             case name if name.endswith(".xlsx"):
                 return self._xlsxExtension(args);

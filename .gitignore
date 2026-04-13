@@ -1,4 +1,4 @@
-# PyInstaller
+# PyInstaller build artefakty
 build/
 dist/
 release/
@@ -6,30 +6,56 @@ builder/compiled/
 builder/release_simulation/
 *.spec
 
-# Security — privátní klíče (veřejný certifikát JE v repu)
-*.pfx
-*.pem
-cert_password.txt
+# Sphinx HTML výstup (zdroje v docs/ zůstávají v repu)
+docs/_build/
+
+# Coverage report
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
 
 # Python cache
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Local environment
+# Virtual environment
 .venv/
+venv/
+env/
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
 
-# Build/runtime výstupy
-grafy_metoda_graf/
-latex_output/
+# Runtime výstupy metod
 outputs/
+latex_output/
+grafy_metoda_graf/
+
+# Security — privátní klíče (veřejný certifikát JE v repu)
+*.pfx
+*.pem
+*.key
+cert_password.txt
+.secrets
+.env
+.env.local
 
 # Dočasné soubory
 *.tar
 *.tar.gz
+*.zip
 PYINSTALLER_CMD
-.secrets
 tester.py
-grafy_metoda_graf
-.coveragerc
+tmp/
+temp/

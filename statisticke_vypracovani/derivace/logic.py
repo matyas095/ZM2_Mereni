@@ -10,6 +10,13 @@ class Derivace(Method):
     name = "derivace";
     description = "Numerická derivace dat (central differences)";
 
+    def validate(self, args) -> None:
+        import os;
+        if not getattr(args, 'input', None):
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(args.input):
+            raise ValueError(f"Soubor '{args.input}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -39,7 +46,7 @@ class Derivace(Method):
             }
         ];
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         data = InputParser.from_file(args.input);
 
         x_name = getattr(args, 'x_col', None) or data[0].name;
@@ -63,7 +70,7 @@ class Derivace(Method):
         result.add(Measurement(x_name, x.tolist()));
         result.add(Measurement(deriv_name, dy_dx.tolist()));
 
-        if doPrint:
+        if do_print:
             print(f"Derivace {y_name} podle {x_name}");
             print(f"├──Počet bodů: {len(x)}");
             print(f"├──Rozsah {x_name}: [{x.min():.4g}, {x.max():.4g}]");

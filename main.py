@@ -48,6 +48,22 @@ def check_for_updates():
     except Exception as e:
         print(f"❌ Connection error: {e}");
 
+_METHOD_ALIASES = {
+    "ap": "aritmeticky_prumer",
+    "nc": "neprima_chyba",
+    "vp": "vazeny_prumer",
+    "der": "derivace",
+    "cs": "convert_soubor",
+    "jt": "join_tables",
+    "ft": "format_table",
+    "et": "extract_table",
+    "gi": "graf_interval",
+    "hist": "histogram",
+    "g": "graf",
+    "reg": "regrese",
+};
+
+
 class CLIApp:
     def __init__(self, only: set = None):
         self.methods: dict[str, Method] = {};
@@ -86,8 +102,25 @@ class CLIApp:
         parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {CURRENT_VERSION}");
         parser.add_argument("--list-units", action="store_true",
                            help="Vypíše podporované SI jednotky a prefixy");
+
+        ALIASES = {
+            "aritmeticky_prumer": ["ap"],
+            "neprima_chyba": ["nc"],
+            "vazeny_prumer": ["vp"],
+            "derivace": ["der"],
+            "convert_soubor": ["cs"],
+            "join_tables": ["jt"],
+            "format_table": ["ft"],
+            "extract_table": ["et"],
+            "graf_interval": ["gi"],
+            "histogram": ["hist"],
+            "graf": ["g"],
+            "regrese": ["reg"],
+        };
+
         for m_name, method_instance in self.methods.items():
-            sub_parser = subparsers.add_parser(m_name, help=method_instance.description);
+            aliases = ALIASES.get(m_name, []);
+            sub_parser = subparsers.add_parser(m_name, aliases=aliases, help=method_instance.description);
             sub_parser.add_argument("--output-format", choices=["text", "json"], default="text",
                                    help="Formát výstupu: text (výchozí) nebo json");
             sub_parser.add_argument("--no-color", action="store_true",
@@ -122,6 +155,10 @@ class CLIApp:
             while selected not in self.methods:
                 selected = input("Zadejte metodu: ").strip();
             args.method = selected;
+
+        # Alias → canonical name
+        if args.method in _METHOD_ALIASES:
+            args.method = _METHOD_ALIASES[args.method];
 
         method_instance = self.methods[args.method];
 
@@ -240,6 +277,13 @@ class CLIApp:
 
         if getattr(args, 'no_color', False):
             os.environ["ZM2_COLORS"] = "none";
+
+        from objects.logger import configure as _configure_logger;
+        _configure_logger(
+            verbose=getattr(args, 'verbose', False),
+            quiet=getattr(args, 'quiet', False),
+            no_color=getattr(args, 'no_color', False),
+        );
 
         output_format = getattr(args, 'output_format', 'text');
 

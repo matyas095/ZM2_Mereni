@@ -7,11 +7,17 @@ V této složce jsou reálné příklady workflow pro konkrétní úlohy ZM2 FJF
 ```
 examples/
 ├── termistor/          # Úloha #9 — závislost odporu termistoru na teplotě
-│   ├── README.md       # Popis úlohy
-│   ├── data/           # Vstupní data (CASSY export)
-│   └── commands.sh     # Workflow — posloupnost příkazů
+├── ohmuv_zakon/        # Úloha #7 — U-I charakteristika rezistoru
+├── wheatstone/         # Úloha #8 — Wheatstoneův můstek
+├── kmity/              # Úloha #10 — harmonické kmity
 └── ...
 ```
+
+Každý adresář obsahuje:
+
+- `README.md` — popis úlohy a workflow,
+- `data/` — vstupní data,
+- `commands.sh` — posloupnost příkazů pro kompletní zpracování.
 
 ## 2 Použití
 

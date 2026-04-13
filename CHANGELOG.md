@@ -12,6 +12,7 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - `join_tables` — horizontální spojení dvou LaTeX tabulek (módy `horizontal` a `match`).
 - `histogram` — histogram rozdělení s volitelným proložením Gaussovkou.
 - `derivace` — numerická derivace metodou centrálních diferencí.
+- `regrese` — lineární regrese bez grafu; vrací koeficienty, kovarianci a chi-squared.
 - `extract_table` — extrakce dat z LaTeX tabulky zpět do formátu `VELIČINA=data` (inverze `format_table`).
 - `format_table` — úprava existující LaTeX tabulky; podporuje:
   - `--si-normalize` / `--convert-units` — převod jednotek v hlavičkách i hodnotách,
@@ -21,7 +22,34 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
   - `--append-stats` — doplnění průměru a chyby pro každý sloupec do captionu ve formátu `$VELIČINA = (průměr \pm chyba)\,\mathrm{jednotka}$`,
   - `--no-caption-stats` — vypnutí auto-statistik (přepisuje nastavení z configu),
   - `--auto-scale` — automatický výběr vhodného SI prefixu podle velikosti hodnot,
+  - `--interactive` — interaktivní režim pro postupnou úpravu parametrů,
   - `--dry-run` — náhled bez zápisu.
+
+**Programatické API a architektura**
+
+- Nový modul `zm2/__init__.py` — knihovní API pro volání z jiného skriptu nebo Jupyter notebooku.
+- Sjednocené signatury všech metod: `run(args, do_print: bool = True) -> dict`.
+- Metoda `validate(args)` v každé metodě — odchytává chyby předem (chybějící soubory, nesprávné argumenty) místo hluboko ve výpočtech.
+- Oddělený `compute()` v bázové třídě pro čistý výpočet bez I/O.
+- Python logging (`objects/logger.py`) — nahrazuje `print()` s verbose/quiet úrovněmi.
+- Type hints v klíčových souborech (`base.py`, `measurement.py`, `zm2/`).
+
+**CLI vylepšení**
+
+- Aliasy metod: `ap`, `nc`, `vp`, `der`, `reg`, `cs`, `jt`, `ft`, `et`, `g`, `gi`, `hist`.
+- Custom fit funkce v `graf` (`--custom-fit "a*sin(b*x+c)"`) přes SymPy parser.
+- Progress bar pro batch režim (tqdm s fallbackem).
+
+**Dokumentace**
+
+- Sphinx scaffold v `docs/` pro generování HTML dokumentace z docstringů.
+- Rozšíření `examples/` o úlohy `ohmuv_zakon/`, `wheatstone/` a `kmity/`.
+
+**Infrastruktura**
+
+- Pre-commit hooky v `.pre-commit-config.yaml` — syntax check + testy před commitem.
+- Coverage enforcement v CI (`--fail-under=70`) — PR neprojde při poklesu pokrytí.
+- Integration testy v `tests/integration/test_api.py` pro programatické API.
 
 **Vylepšení `aritmeticky_prumer`**
 
@@ -75,7 +103,7 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - OOP refaktoring — všechny metody jsou třídy dědící z abstraktní třídy `Method`.
 - Rozdělené buildy — balík **Statistika** (cca 75 MB) a balík **Grafy** (cca 96 MB) namísto jednoho monolitu.
 - Objektový model `Measurement`, `MeasurementSet`, `InputParser` nahrazuje dřívější procedurální kód.
-- Rozšíření testů ze 3 na 141+ jednotkových testů.
+- Rozšíření testů ze 3 na 159+ jednotkových testů.
 - CI workflow spouští testy na každém pull requestu, repozitář má nastavenou branch protection.
 - Metoda `graf_BROKEN` přejmenována na `graf`.
 

@@ -26,6 +26,24 @@ class AritmetickyPrumer(Method):
     name = "aritmeticky_prumer";
     description = "Aritmetický průměr + chyba aritmetického průměru";
 
+    def validate(self, args) -> None:
+        import os;
+        if isinstance(args, dict):
+            if not args:
+                raise ValueError("Prázdný vstupní dict pro aritmeticky_prumer");
+            return;
+        batch = getattr(args, 'batch', None);
+        inp = getattr(args, 'input', None);
+        if batch:
+            import glob;
+            if not glob.glob(batch):
+                raise ValueError(f"Batch glob '{batch}' neodpovídá žádnému souboru");
+        elif inp:
+            if not os.path.isfile(inp):
+                raise ValueError(f"Soubor '{inp}' neexistuje");
+        else:
+            raise ValueError("Chybí vstup: použij -i SOUBOR nebo --batch GLOB");
+
     def get_args_info(self):
         return [
             {
@@ -104,7 +122,7 @@ class AritmetickyPrumer(Method):
             }
         ];
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         from objects.config import config;
         cfg = config();
 
@@ -116,13 +134,21 @@ class AritmetickyPrumer(Method):
                 from utils import color_print;
                 print(f"{color_print.RED}Žádné soubory neodpovídají: {batch}{color_print.END}");
                 return {};
-            print(f"Zpracovávám {len(files)} souborů...");
+            try:
+                from tqdm import tqdm;
+                iterator = tqdm(files, desc="Zpracovávám", unit="soubor");
+                use_tqdm = True;
+            except ImportError:
+                iterator = files;
+                use_tqdm = False;
+                print(f"Zpracovávám {len(files)} souborů...");
             results = {};
-            for idx, f in enumerate(files, 1):
-                print(f"\n  [{idx}/{len(files)}] {f}");
+            for idx, f in enumerate(iterator, 1):
+                if not use_tqdm:
+                    print(f"\n  [{idx}/{len(files)}] {f}");
                 args.input = f;
                 args.batch = None;
-                results[f] = self.run(args, doPrint);
+                results[f] = self.run(args, do_print=do_print and not use_tqdm);
             return results;
 
         u_B_map = {};
@@ -178,11 +204,11 @@ class AritmetickyPrumer(Method):
                 total_removed = sum(len(m.removed_values) for m in data);
                 print(f"{color_print.DARKCYAN}[verbose]{color_print.END} Outlier mode: {outliers_mode}, odstraněno {total_removed}");
 
-        if doPrint:
+        if do_print:
             quiet = getattr(args, 'quiet', False) if not isinstance(args, dict) else False;
             data.print_results(quiet=quiet);
 
-        if doPrint and getattr(args, 'latextable', None):
+        if do_print and getattr(args, 'latextable', None):
             source = getattr(args, 'input', None) if not isinstance(args, dict) else None;
             data.to_latex_table(
                 source_file=source,

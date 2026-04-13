@@ -9,6 +9,13 @@ class Histogram(Method):
     name = "histogram";
     description = "Histogram rozdělení dat + Gaussovka";
 
+    def validate(self, args) -> None:
+        import os;
+        if not getattr(args, 'input', None):
+            raise ValueError("Chybí vstupní soubor (-i)");
+        if not os.path.isfile(args.input):
+            raise ValueError(f"Soubor '{args.input}' neexistuje");
+
     def get_args_info(self):
         return [
             {
@@ -44,7 +51,7 @@ class Histogram(Method):
             }
         ];
 
-    def run(self, args, doPrint=True):
+    def run(self, args, do_print=True):
         data = InputParser.from_file(args.input);
         col_name = getattr(args, 'column', None) or data[0].name;
         m = data.get(col_name);
@@ -78,7 +85,7 @@ class Histogram(Method):
         plt.show();
         plt.close();
 
-        if doPrint:
+        if do_print:
             print(f"{col_name}: n={n}, bins={bins}");
             print(f"├──min = {values.min():.4g}");
             print(f"├──max = {values.max():.4g}");

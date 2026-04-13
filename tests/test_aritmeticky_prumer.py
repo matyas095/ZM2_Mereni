@@ -15,12 +15,12 @@ class TestAritmetickyPrumer(unittest.TestCase):
         self.ap = AritmetickyPrumer();
 
     def test_run_dict(self):
-        result = self.ap.run({"x": [1, 2, 3]}, doPrint=False);
+        result = self.ap.run({"x": [1, 2, 3]}, do_print=False);
         self.assertIn("x", result);
         self.assertAlmostEqual(result["x"][0], 2.0);
 
     def test_run_dict_error(self):
-        result = self.ap.run({"x": [10, 10, 10]}, doPrint=False);
+        result = self.ap.run({"x": [10, 10, 10]}, do_print=False);
         self.assertAlmostEqual(result["x"][1], 0.0);
 
     def test_run_file(self):
@@ -28,7 +28,7 @@ class TestAritmetickyPrumer(unittest.TestCase):
             input = os.path.join(BASE, "statisticke_vypracovani", "aritmeticky_prumer", "input", "input_aritm_prumer");
             latextable = None;
             typ_b = None;
-        result = self.ap.run(Args(), doPrint=False);
+        result = self.ap.run(Args(), do_print=False);
         self.assertIn("R_i", result);
         self.assertGreater(result["R_i"][0], 0);
 

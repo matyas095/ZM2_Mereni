@@ -148,12 +148,13 @@ def parse_rovnice(rovnice_str):
     except ValueError:
         raise ValueError("Chyba v rovnici; Formát: 'VELIČINA=VZTAH'");
 
-def print_graf_saved(name, pathToDir, rovnice_info=None):
+def print_graf_saved(name, pathToDir, rovnice_info=None) -> str:
     msg = f"Graf se jménem {color_print.BOLD}{color_print.BLUE}{name}{color_print.END}";
     if rovnice_info:
         msg += f" a rovnicí {color_print.UNDERLINE}{rovnice_info}{color_print.END}";
     msg += f" se uložil do souboru:\n└──{pathToDir}/{name}.svg";
     print(msg);
+    return f"{pathToDir}/{name}.svg";
 
 def balance_math_braces(s: str) -> str:
     """Vyvážení { } uvnitř každého $..$ bloku."""

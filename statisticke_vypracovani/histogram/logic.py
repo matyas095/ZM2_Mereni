@@ -91,6 +91,7 @@ class Histogram(Method):
             print(f"├──max = {values.max():.4g}");
             print(f"├──mean = {np.mean(values):.4g}");
             print(f"└──σ = {np.std(values, ddof=1):.4g}");
-            print_graf_saved(name, folder);
+            save_Location = print_graf_saved(name, folder);
+        else: save_Location = None;
 
-        return {"histogram": {"bins": bins, "n": n, "min": float(values.min()), "max": float(values.max())}};
+        return { "histogram": { "bins": bins, "n": n, "min": float(values.min()), "max": float(values.max()), "save_file": save_Location } };

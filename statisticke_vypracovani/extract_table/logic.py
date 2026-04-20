@@ -79,4 +79,4 @@ class ExtractTable(Method):
             print(f"└──sloupce: {len(clean_headers)} ({', '.join(clean_headers)})");
             print(f"└──řádků:   {len(rows)}");
 
-        return {h: vals for h, vals in columns.items()};
+        return { h: vals for h, vals in columns.items() };

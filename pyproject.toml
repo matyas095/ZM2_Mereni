@@ -1,0 +1,103 @@
+[project]
+name = "zm2-mereni"
+version = "0.4.0"
+description = "Statistické nástroje pro fyzikální laboratorní úlohy"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "builder/compiled",
+    "builder/release_simulation",
+    "docs/_build",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",
+    "B", "UP", "C4", "SIM",
+    "RET", "PIE",
+]
+ignore = [
+    "E501",
+    "E701",
+    "E702",
+    "E703",
+    "E741",
+    "B008",
+    "B017",
+    "B027",
+    "SIM102",
+    "SIM103",
+    "SIM105",
+    "SIM108",
+    "SIM118",
+    "RET504",
+    "RET505",
+    "B904",
+    "B007",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402", "F401"]
+"main.py" = ["E402"]
+"main_statistika.py" = ["E402"]
+"main_grafy.py" = ["E402"]
+"**/__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+no_implicit_optional = false
+check_untyped_defs = false
+disable_error_code = ["import-untyped", "var-annotated", "assignment", "attr-defined", "no-redef", "operator", "arg-type", "name-defined", "misc", "return-value", "union-attr", "index", "call-overload", "func-returns-value", "valid-type", "no-any-return", "type-arg"]
+exclude = [
+    "\\.venv",
+    "build",
+    "dist",
+    "builder",
+    "docs",
+    "tests",
+]
+files = ["main.py", "utils.py", "statisticke_vypracovani", "objects", "zm2"]
+
+[[tool.mypy.overrides]]
+module = ["sympy.*", "scipy.*", "matplotlib.*", "numpy.*", "requests.*", "tkinter.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
+    ".venv/*",
+    "builder/*",
+    "zm2/*",
+    "*/__pycache__/*",
+    "main_grafy.py",
+    "main_statistika.py",
+    "statisticke_vypracovani/graf/*",
+    "statisticke_vypracovani/graf_interval/*",
+    "statisticke_vypracovani/histogram/*",
+    "objects/logger.py",
+    "objects/config.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+precision = 1
+show_missing = true

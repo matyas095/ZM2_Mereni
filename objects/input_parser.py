@@ -41,7 +41,7 @@ class InputParser:
         result = {};
         path = {-4: result};
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             for line in f:
                 if not line.strip():
                     continue;
@@ -97,7 +97,7 @@ class InputParser:
         import re;
         u_B_map = u_B_map or {};
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             lines = [l.rstrip() for l in f if l.strip()];
 
         header_line = lines[1];
@@ -129,7 +129,7 @@ class InputParser:
     @staticmethod
     def _detect_cassy(file_path: str) -> bool:
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 f.readline();
                 second_line = f.readline();
             return '(' in second_line and ')' in second_line;

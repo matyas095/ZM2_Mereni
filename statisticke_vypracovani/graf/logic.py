@@ -1,3 +1,4 @@
+from typing import Any;
 import numpy as np;
 import matplotlib.pyplot as plt;
 from scipy.optimize import curve_fit;
@@ -103,7 +104,7 @@ class Graf(Method):
         param_names = ["a", "b", "c", "d"][:len(popt)];
 
         print(color_print.BOLD + f"Fit: {fit_name}" + color_print.END);
-        for name, val, err in zip(param_names, popt, param_errors):
+        for name, val, err in zip(param_names, popt, param_errors, strict=False):
             print(f"├──{color_print.UNDERLINE}{name}{color_print.END} = {return_Cislo_Krat_10_Na(val)} ± {return_Cislo_Krat_10_Na(err)}");
 
         r2 = r2_score(y, y_pred);
@@ -129,7 +130,6 @@ class Graf(Method):
             sharex=True
         );
 
-        param_errors = np.sqrt(np.diag(pcov));
         label_text = f"Fit {fit_name}: " + ", ".join([f"${return_Cislo_Krat_10_Na(p)}$" for p in popt]);
 
         x_fit = np.linspace(min(x), max(x), 500);
@@ -144,7 +144,7 @@ class Graf(Method):
             chi2_red = chi2_val / n_dof if n_dof > 0 else float('inf');
             ax_main.text(0.02, 0.95, f"$\\chi^2_{{red}} = {chi2_red:.2f}$",
                         transform=ax_main.transAxes, fontsize=10, verticalalignment='top',
-                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5));
+                        bbox={'boxstyle': 'round', 'facecolor': 'wheat', 'alpha': 0.5});
 
         ax_main.set_ylabel(f'{y_key}');
         ax_main.set_title(args.name);
@@ -178,7 +178,7 @@ class Graf(Method):
         var_x = return_FirstWord(PROMENA[0, 0]);
         var_y = return_FirstWord(PROMENA[1, 0]);
         if not contains_substring(var_x, clean_vars) or not contains_substring(var_y, clean_vars):
-            raise ValueError(f"Chybí mi veličiny v rovnici...");
+            raise ValueError("Chybí mi veličiny v rovnici...");
 
         variables = [return_FirstWord(PROMENA[0, 0]), return_FirstWord(PROMENA[1, 0])];
         f = lambdify(variables, parsed_y, 'numpy');
@@ -231,7 +231,7 @@ class Graf(Method):
         var_x = return_FirstWord(PROMENA[0, 0]);
         var_y = return_FirstWord(PROMENA[1, 0]);
         if not contains_substring(var_x, clean_vars) or not contains_substring(var_y, clean_vars):
-            raise ValueError(f"Chybí mi veličiny v rovnici...");
+            raise ValueError("Chybí mi veličiny v rovnici...");
 
         variables = [return_FirstWord(PROMENA[0, 0]), return_FirstWord(PROMENA[1, 0])];
         f = lambdify(variables, parsed_y, 'numpy');
@@ -283,7 +283,6 @@ class Graf(Method):
             fit_func_raw, params = self._compile_custom_fit(custom_fit_expr);
             def fit_func(x, *p):
                 return fit_func_raw(x, *p);
-            fit_label = f"custom: {custom_fit_expr}";
             if args.logaritmicky:
                 y_Range = np.log(y_Range);
             aritm_result = aritm.run({x_key: list(x_m.values)}, False);
@@ -293,7 +292,7 @@ class Graf(Method):
             y_pred = fit_func(x_Range, *popt);
             param_errors = np.sqrt(np.diag(pcov));
             print(color_print.BOLD + f"Custom fit: {custom_fit_expr}" + color_print.END);
-            for name, val, err in zip(params, popt, param_errors):
+            for name, val, err in zip(params, popt, param_errors, strict=False):
                 print(f"├──{color_print.UNDERLINE}{name}{color_print.END} = {val:.4g} ± {err:.4g}");
             print(f"└──{color_print.UNDERLINE}R²{color_print.END} = {r2_score(y_Range, y_pred):.6f}");
             print("-" * 100);
@@ -385,7 +384,7 @@ class Graf(Method):
         if not getattr(args, 'name', None):
             raise ValueError("Chybí název grafu (-n)");
 
-    def run(self, args, do_print: bool = True) -> dict:
+    def run(self, args: Any, do_print: bool = True) -> dict:
         data = InputParser.from_file(args.input);
 
         dir_name = "grafy_metoda_graf";

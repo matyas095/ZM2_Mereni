@@ -1,5 +1,6 @@
+from typing import Any;
 from pathlib import Path;
-from utils import color_print;
+from utils import color_print, locked_open;
 from statisticke_vypracovani.base import Method;
 from statisticke_vypracovani.join_tables.logic import JoinTables;
 
@@ -46,7 +47,7 @@ class ExtractTable(Method):
             return format_name_unit(var, unit);
         return var;
 
-    def run(self, args, do_print=True):
+    def run(self, args: Any, do_print: bool = True) -> dict:
         jt = JoinTables();
         _, headers, rows, _, _ = jt._parse_tex(args.input);
 
@@ -70,7 +71,7 @@ class ExtractTable(Method):
         output_name = getattr(args, 'output', 'extracted') + ".txt";
         output_path = folder / output_name;
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with locked_open(output_path, 'w', encoding='utf-8') as f:
             for h, vals in columns.items():
                 f.write(f"{h}=" + ",".join(vals) + "\n");
 
@@ -79,4 +80,4 @@ class ExtractTable(Method):
             print(f"└──sloupce: {len(clean_headers)} ({', '.join(clean_headers)})");
             print(f"└──řádků:   {len(rows)}");
 
-        return { h: vals for h, vals in columns.items() };
+        return dict(columns);

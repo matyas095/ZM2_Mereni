@@ -7,7 +7,10 @@ Příklad použití:
     >>> result = zm2.aritmeticky_prumer("data.txt", typ_b={"R": 0.01}, outliers="iqr")
 """
 from argparse import Namespace;
-from typing import Union, Optional;
+from typing import Union, Optional, TYPE_CHECKING;
+
+if TYPE_CHECKING:
+    from objects.measurement_set import MeasurementSet;
 
 __all__ = [
     "aritmeticky_prumer",
@@ -33,11 +36,11 @@ def _make_args(**kwargs) -> Namespace:
 
 
 def aritmeticky_prumer(
-    source: Union[str, dict],
-    typ_b: Optional[dict] = None,
-    outliers: Optional[str] = None,
+    source: str | dict,
+    typ_b: dict | None = None,
+    outliers: str | None = None,
     si_normalize: bool = False,
-    convert_units: Optional[dict] = None,
+    convert_units: dict | None = None,
 ) -> dict:
     """Aritmetický průměr + chyba. Vrátí dict {name: [mean, u_c]}."""
     from statisticke_vypracovani.aritmeticky_prumer.logic import AritmetickyPrumer;
@@ -55,9 +58,9 @@ def aritmeticky_prumer(
 
 def neprima_chyba(
     source: str,
-    rovnice: Optional[str] = None,
-    konstanty: Optional[dict] = None,
-    typ_b: Optional[dict] = None,
+    rovnice: str | None = None,
+    konstanty: dict | None = None,
+    typ_b: dict | None = None,
 ) -> list:
     from statisticke_vypracovani.neprima_chyba.logic import NeprimaChyba;
     m = NeprimaChyba();
@@ -76,14 +79,14 @@ def vazeny_prumer(values: list, uncertainties: list, name: str = "x") -> dict:
     return m.run(args, do_print=False);
 
 
-def derivace(source: str, x_col: Optional[str] = None, y_col: Optional[str] = None) -> dict:
+def derivace(source: str, x_col: str | None = None, y_col: str | None = None) -> dict:
     from statisticke_vypracovani.derivace.logic import Derivace;
     m = Derivace();
     args = _make_args(input=source, x_col=x_col, y_col=y_col, output="der");
     return m.run(args, do_print=False);
 
 
-def regrese(source: str, x_col: Optional[str] = None, y_col: Optional[str] = None, sigma: Optional[str] = None) -> dict:
+def regrese(source: str, x_col: str | None = None, y_col: str | None = None, sigma: str | None = None) -> dict:
     from statisticke_vypracovani.regrese.logic import Regrese;
     m = Regrese();
     args = _make_args(input=source, x_col=x_col, y_col=y_col, sigma=sigma);
@@ -93,13 +96,13 @@ def regrese(source: str, x_col: Optional[str] = None, y_col: Optional[str] = Non
 def graf(
     source: str,
     name: str = "graf",
-    rovnice: Optional[str] = None,
-    fit: Optional[str] = None,
+    rovnice: str | None = None,
+    fit: str | None = None,
     chi2: bool = False,
     logaritmicky: bool = False,
-    parametr: Optional[str] = None,
-    plot_outliers: Optional[str] = None,
-    custom_fit: Optional[str] = None,
+    parametr: str | None = None,
+    plot_outliers: str | None = None,
+    custom_fit: str | None = None,
 ) -> dict:
     from statisticke_vypracovani.graf.logic import Graf;
     m = Graf();
@@ -121,8 +124,8 @@ def graf_interval(name: str, rovnice: str, interval: list) -> dict:
 def histogram(
     source: str,
     name: str = "hist",
-    column: Optional[str] = None,
-    bins: Optional[int] = None,
+    column: str | None = None,
+    bins: int | None = None,
     gauss: bool = False,
 ) -> dict:
     from statisticke_vypracovani.histogram.logic import Histogram;
@@ -135,10 +138,10 @@ def format_table(
     source: str,
     output: str = "formatted",
     si_normalize: bool = False,
-    convert_units: Optional[dict] = None,
-    caption: Optional[str] = None,
-    label: Optional[str] = None,
-    precision: Optional[int] = None,
+    convert_units: dict | None = None,
+    caption: str | None = None,
+    label: str | None = None,
+    precision: int | None = None,
     append_stats: bool = False,
     auto_scale: bool = False,
 ) -> dict:
@@ -169,7 +172,7 @@ def join_tables(
     output: str = "joined",
     mode: str = "horizontal",
     si_normalize: bool = False,
-    convert_units: Optional[dict] = None,
+    convert_units: dict | None = None,
 ) -> dict:
     from statisticke_vypracovani.join_tables.logic import JoinTables;
     import json;

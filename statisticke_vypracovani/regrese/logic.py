@@ -1,4 +1,5 @@
-import math;
+from typing import Any;
+
 import numpy as np;
 from scipy.optimize import curve_fit;
 from scipy.stats import chi2 as chi2_dist;
@@ -50,7 +51,7 @@ class Regrese(Method):
         if not os.path.isfile(args.input):
             raise ValueError(f"Soubor '{args.input}' neexistuje");
 
-    def run(self, args, do_print: bool = True) -> dict:
+    def run(self, args: Any, do_print: bool = True) -> dict:
         data = InputParser.from_file(args.input);
 
         x_name = getattr(args, 'x_col', None) or data[0].name;
@@ -90,7 +91,7 @@ class Regrese(Method):
             result["p_value"] = p_value;
 
         if do_print:
-            print(color_print.BOLD + f"Lineární regrese: y = a·x + b" + color_print.END);
+            print(color_print.BOLD + "Lineární regrese: y = a·x + b" + color_print.END);
             print(f"├──{color_print.UNDERLINE}a{color_print.END} = ({a:.4g} ± {a_err:.4g})");
             print(f"├──{color_print.UNDERLINE}b{color_print.END} = ({b:.4g} ± {b_err:.4g})");
             print(f"├──{color_print.UNDERLINE}R²{color_print.END} = {r2:.6f}");

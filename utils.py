@@ -4,6 +4,7 @@ import math;
 import sys;
 import os;
 import re;
+import contextlib;
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS; # type: ignore
@@ -61,7 +62,9 @@ def return_Cislo_Krat_10_Na(x):
     zaklad = x / 10**exponent;
     return f"{zaklad:.3f} * 10^{exponent}";
 
-def extract_variables(formula_str, toIgnore = []):
+def extract_variables(formula_str, toIgnore=None):
+    if toIgnore is None:
+        toIgnore = [];
     ignored_functions = ['log', 'ln', 'sin', 'cos', 'tan', 'exp', 'sqrt', 'abs'] + toIgnore;
 
     ignore_pattern = r'\b(?:' + '|'.join(ignored_functions) + r')\b';
@@ -69,7 +72,7 @@ def extract_variables(formula_str, toIgnore = []):
 
     variables = re.findall(regex_pattern, formula_str);
 
-    return sorted(list(set(variables)));
+    return sorted(set(variables));
 
 def extract_latex_logic(cli_input):
     clean_input = cli_input.strip("'\"")
@@ -78,7 +81,7 @@ def extract_latex_logic(cli_input):
     return logic
 
 def return_FirstWord(str):
-    regex = rf"^\w"
+    regex = r"^\w"
     var = re.search(regex, str);
     if var: return var.group();
     return None;
@@ -187,3 +190,27 @@ def r2_score(y_true, y_pred):
     ss_res = np.sum((np.array(y_true) - np.array(y_pred)) ** 2);
     ss_tot = np.sum((np.array(y_true) - np.mean(y_true)) ** 2);
     return 1 - ss_res / ss_tot;
+
+@contextlib.contextmanager
+def locked_open(path, mode="w", encoding="utf-8"):
+    """Otevře soubor s exclusive lockem (Linux/Mac fcntl, Windows msvcrt).
+    Brání závodění při paralelním běhu více metod do stejného outputu.
+    """
+    with open(path, mode, encoding=encoding) as f:
+        try:
+            import fcntl;
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX);
+        except ImportError:
+            try:
+                import msvcrt;
+                msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1);
+            except (ImportError, OSError):
+                pass;
+        try:
+            yield f;
+        finally:
+            try:
+                import fcntl;
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN);
+            except (ImportError, OSError):
+                pass;

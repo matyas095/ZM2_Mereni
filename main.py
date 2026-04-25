@@ -53,6 +53,7 @@ _METHOD_ALIASES = {
     "nc": "neprima_chyba",
     "vp": "vazeny_prumer",
     "der": "derivace",
+    "int": "integrace",
     "cs": "convert_soubor",
     "jt": "join_tables",
     "ft": "format_table",
@@ -96,7 +97,18 @@ class CLIApp:
                 print(f"Nepodařilo se načíst modul {m_name}: {e}");
 
     def _build_parser(self):
-        parser = argparse.ArgumentParser(description="Statistické nástroje");
+        methods_self = self;
+
+        class _SuggestingParser(argparse.ArgumentParser):
+            def error(self, message):
+                import re;
+                m = re.search(r"invalid choice: '([^']+)'", message);
+                if m:
+                    methods_self._suggest_method(m.group(1));
+                    sys.exit(2);
+                super().error(message);
+
+        parser = _SuggestingParser(description="Statistické nástroje");
         subparsers = parser.add_subparsers(dest="method", help="Vyberte metodu");
 
         parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {CURRENT_VERSION}");
@@ -108,6 +120,7 @@ class CLIApp:
             "neprima_chyba": ["nc"],
             "vazeny_prumer": ["vp"],
             "derivace": ["der"],
+            "integrace": ["int"],
             "convert_soubor": ["cs"],
             "join_tables": ["jt"],
             "format_table": ["ft"],
@@ -146,114 +159,136 @@ class CLIApp:
 
         return parser;
 
-    def _interactive_handler(self, args):
-        is_tty = sys.stdin.isatty();
-
+    def _resolve_method(self, args, is_tty: bool):
         if not args.method:
             if not is_tty:
                 print("Error: Metoda nezadána a stdin není terminál (nelze interaktivně promptovat).");
                 sys.exit(2);
-            print("Statistika Tůl - Interaktivní režim");
-            print("---------------------------------------");
-            print(f"Dostupné metody: {', '.join(self.methods.keys())}");
-            selected = "";
-            while selected not in self.methods:
-                selected = input("Zadejte metodu: ").strip();
-            args.method = selected;
+            self._select_method_interactive(args);
 
-        # Alias → canonical name
         if args.method in _METHOD_ALIASES:
             args.method = _METHOD_ALIASES[args.method];
 
-        method_instance = self.methods[args.method];
+        if args.method not in self.methods:
+            self._suggest_method(args.method);
+            sys.exit(2);
 
-        # Pokud je zadaný --batch, přeskočíme požadavek na --input
+        return self.methods[args.method];
+
+    def _select_method_interactive(self, args):
+        print("Statistika Tůl - Interaktivní režim");
+        print("---------------------------------------");
+        print(f"Dostupné metody: {', '.join(self.methods.keys())}");
+        selected = "";
+        while selected not in self.methods and selected not in _METHOD_ALIASES:
+            selected = input("Zadejte metodu: ").strip();
+        args.method = selected;
+
+    def _suggest_method(self, name: str):
+        import difflib;
+        candidates = list(self.methods.keys()) + list(_METHOD_ALIASES.keys());
+        matches = difflib.get_close_matches(name, candidates, n=3, cutoff=0.5);
+        msg = f"Error: Neznámá metoda '{name}'.";
+        if matches:
+            msg += f" Měli jste na mysli: {', '.join(matches)}?";
+        print(msg);
+
+    def _prompt_file(self, args, dest: str, prompt: str, is_tty: bool):
+        if not is_tty:
+            return;
+        picked_path = None;
+        try:
+            from tkinter import filedialog, Tk;
+            root = Tk();
+            root.withdraw();
+            print(f"[{args.method}] Vyberte {prompt}...");
+            picked_path = filedialog.askopenfilename(title=prompt);
+            root.destroy();
+        except Exception:
+            pass;
+
+        if picked_path:
+            setattr(args, dest, picked_path);
+        else:
+            user_val = input(f"Vložte cestu k {dest}: ").strip().replace('"', '').replace("'", "");
+            setattr(args, dest, user_val if user_val else None);
+
+    def _prompt_bool(self, args, dest: str, prompt: str, is_tty: bool):
+        if not is_tty:
+            setattr(args, dest, False);
+            return;
+        choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip();
+        setattr(args, dest, choice == 'y');
+
+    def _prompt_value(self, args, dest: str, prompt: str, is_required: bool, default, arg_type, is_tty: bool):
+        if not is_required and default is not None:
+            setattr(args, dest, default);
+            return;
+
+        if not is_tty:
+            if is_required:
+                print(f"Error: Chybí povinný parametr --{dest} ({prompt}) a stdin není terminál.");
+                sys.exit(2);
+            setattr(args, dest, default);
+            return;
+
+        user_val = "";
+        if is_required:
+            while not user_val:
+                user_val = input(f"{prompt} (!!REQUIRED!!): ").strip();
+
+        if user_val != "":
+            setattr(args, dest, arg_type(user_val));
+        else:
+            setattr(args, dest, default);
+
+    def _fill_method_args(self, args, method_instance, is_tty: bool):
         has_batch = getattr(args, 'batch', None);
 
         for original_extra in method_instance.get_args_info():
             extra = original_extra.copy();
             dest = extra['flags'][-1].lstrip('-').replace('-', '_');
-
             current_val = getattr(args, dest, None);
 
-            if current_val is None:
-                prompt = extra.get('help', dest);
-                is_required = extra.get("required", False);
-                default = extra.get('default', None);
+            if current_val is not None:
+                continue;
 
-                if has_batch and dest == "input":
+            prompt = extra.get('help', dest);
+            is_required = extra.get("required", False);
+            default = extra.get('default', None);
+            is_boolean = extra.get("action") in ["store_true", "store_false"];
+
+            if has_batch and dest == "input":
+                continue;
+
+            if extra.get("is_file") and is_required:
+                self._prompt_file(args, dest, prompt, is_tty);
+                continue;
+
+            if is_boolean:
+                if not is_required and any(vars(args).values()):
                     continue;
+                self._prompt_bool(args, dest, prompt, is_tty);
+                continue;
 
-                if extra.get("is_file") and is_required:
-                    if not is_tty:
-                        continue;
-                    picked_path = None;
-                    try:
-                        from tkinter import filedialog, Tk;
-                        root = Tk();
-                        root.withdraw();
-                        print(f"[{args.method}] Vyberte {prompt}...");
-                        picked_path = filedialog.askopenfilename(title=prompt);
-                        root.destroy();
-                    except Exception:
-                        pass;
+            self._prompt_value(args, dest, prompt, is_required, default, extra.get('type', str), is_tty);
 
-                    if picked_path:
-                        setattr(args, dest, picked_path);
-                    else:
-                        user_val = input(f"Vložte cestu k {dest}: ").strip().replace('"', '').replace("'", "");
-                        setattr(args, dest, user_val if user_val else None);
+    def _check_input_files_exist(self, args, has_batch):
+        file_to_check = getattr(args, 'input', None) if not has_batch else None;
+        if not file_to_check:
+            return;
+        files = file_to_check if isinstance(file_to_check, list) else [file_to_check];
+        for f in files:
+            if isinstance(f, str) and not os.path.isfile(f):
+                print(f"Error: Soubor '{f}' nebyl nalezen.");
+                if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
+                sys.exit(1);
 
-                    continue;
-
-                is_boolean = extra.get("action") in ["store_true", "store_false"];
-                if is_boolean and current_val is True: continue;
-
-                if current_val is None or (is_boolean and current_val is False):
-                    if is_boolean and not is_required:
-                        if any(vars(args).values()): continue;
-
-                    if is_boolean:
-                        if not is_tty:
-                            setattr(args, dest, False);
-                            continue;
-                        choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip();
-                        setattr(args, dest, choice == 'y');
-                        continue;
-
-                if not is_required and default is not None:
-                    setattr(args, dest, default);
-                    continue;
-
-                if not is_tty:
-                    if is_required:
-                        print(f"Error: Chybí povinný parametr --{dest} ({prompt}) a stdin není terminál.");
-                        sys.exit(2);
-                    setattr(args, dest, default);
-                    continue;
-
-                user_val = "";
-                if is_required:
-                    while not user_val:
-                        user_val = input(f"{prompt} (!!REQUIRED!!): ").strip();
-
-                if user_val != "":
-                    arg_type = extra.get('type', str);
-                    setattr(args, dest, arg_type(user_val));
-                else:
-                    setattr(args, dest, default);
-
-        file_to_check = getattr(args, 'input', None);
-        if has_batch:
-            file_to_check = None;
-        if file_to_check:
-            files = file_to_check if isinstance(file_to_check, list) else [file_to_check];
-            for f in files:
-                if isinstance(f, str) and not os.path.isfile(f):
-                    print(f"Error: Soubor '{f}' nebyl nalezen.");
-                    if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
-                    sys.exit(1);
-
+    def _interactive_handler(self, args):
+        is_tty = sys.stdin.isatty();
+        method_instance = self._resolve_method(args, is_tty);
+        self._fill_method_args(args, method_instance, is_tty);
+        self._check_input_files_exist(args, getattr(args, 'batch', None));
         return method_instance;
 
     def _print_units(self):

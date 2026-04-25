@@ -1,5 +1,5 @@
 import math;
-from typing import Optional, Union, Sequence;
+from collections.abc import Sequence;
 import numpy as np;
 from utils import color_print, return_Cislo_Krat_10_Na;
 
@@ -10,15 +10,15 @@ class Measurement:
     removed_values: list;
     original_n: int;
 
-    def __init__(self, name: str, values: Sequence[Union[int, float]], u_B: float = 0.0) -> None:
+    def __init__(self, name: str, values: Sequence[int | float], u_B: float = 0.0) -> None:
         self.name = name;
         self.values = np.array(values, dtype=float);
         self.u_B = u_B;
 
-        self._mean: Optional[float] = None;
-        self._u_A: Optional[float] = None;
-        self._u_c: Optional[float] = None;
-        self._precision: Optional[int] = None;
+        self._mean: float | None = None;
+        self._u_A: float | None = None;
+        self._u_c: float | None = None;
+        self._precision: int | None = None;
 
         self.removed_values = [];
         self.original_n = len(self.values);
@@ -30,13 +30,14 @@ class Measurement:
     @property
     def mean(self) -> float:
         if self._mean is None:
-            self._mean = float(np.sum(self.values) / self.n);
+            self._mean = float(np.mean(self.values));
         return self._mean;
 
     @property
     def u_A(self) -> float:
         if self._u_A is None:
-            odchylka = sum([(x - self.mean) ** 2 for x in self.values]);
+            arr = np.asarray(self.values, dtype=np.float64);
+            odchylka = float(np.sum((arr - self.mean) ** 2));
             self._u_A = math.sqrt(odchylka / (self.n * (self.n - 1)));
         return self._u_A;
 

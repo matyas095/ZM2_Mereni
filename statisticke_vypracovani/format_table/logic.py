@@ -1,5 +1,6 @@
 import json;
 import math;
+import numpy as np;
 from pathlib import Path;
 from utils import color_print;
 from statisticke_vypracovani.base import Method;
@@ -112,7 +113,7 @@ class FormatTable(Method):
     def _compute_stats(self, headers, rows, dec_sep=","):
         """Pro každý sloupec spočítá aritmetický průměr + chybu, vrátí list LaTeX řádků."""
         import math;
-        from objects.units import parse_tex_header, format_tex_header;
+        from objects.units import parse_tex_header;
 
         n_cols = len(headers);
         lines = [];
@@ -134,8 +135,9 @@ class FormatTable(Method):
                 continue;
 
             n = len(vals);
-            mean = sum(vals) / n;
-            variance = sum((x - mean) ** 2 for x in vals);
+            arr = np.asarray(vals, dtype=np.float64);
+            mean = float(np.mean(arr));
+            variance = float(np.sum((arr - mean) ** 2));
             u_A = math.sqrt(variance / (n * (n - 1)));
 
             # precision z chyby (0-2): najdi první p, kde round(u_A, p) != 0

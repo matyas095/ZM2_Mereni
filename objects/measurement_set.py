@@ -1,7 +1,7 @@
 import numpy as np;
 from pathlib import Path;
 from itertools import zip_longest;
-from utils import color_print;
+from utils import color_print, locked_open;
 from objects.measurement import Measurement;
 
 def _dec_sep() -> str:
@@ -166,7 +166,7 @@ class MeasurementSet:
         n_cols_tab = len(headers);
         tabular_spec = "@{}" + "c" * n_cols_tab + "@{}";
 
-        with open(tex_File_Path, "w", encoding="utf-8") as f:
+        with locked_open(tex_File_Path, "w", encoding="utf-8") as f:
             if n_rows <= 20:
                 f.write("\\begin{table}[H]\n");
                 f.write("\t\\centering\n");
@@ -219,7 +219,7 @@ class MeasurementSet:
     def to_csv(self, path: str):
         """Exportuje výsledky do CSV: name, mean, u_A, u_B, u_c, n"""
         import csv;
-        with open(path, 'w', encoding='utf-8', newline='') as f:
+        with locked_open(path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f);
             writer.writerow(["name", "mean", "u_A", "u_B", "u_c", "n"]);
             for m in self.measurements:

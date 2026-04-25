@@ -1,6 +1,7 @@
+from typing import Any;
 import re;
 from pathlib import Path;
-from utils import color_print;
+from utils import color_print, locked_open;
 from statisticke_vypracovani.base import Method;
 from objects.measurement import Measurement;
 from objects.measurement_set import MeasurementSet;
@@ -33,7 +34,7 @@ class ConvertSoubor(Method):
             },
         ];
 
-    def run(self, args, return_file=False):
+    def run(self, args: Any, return_file: bool = False):
         dir_name = "outputs";
         folder_path = Path(dir_name).resolve();
         folder_path.mkdir(parents=True, exist_ok=True);
@@ -106,7 +107,7 @@ class ConvertSoubor(Method):
             return ms;
 
         output_name = getattr(args, 'output', 'output_convertor') + '.txt';
-        with open(folder_path / output_name, 'w', encoding='utf-8') as f:
+        with locked_open(folder_path / output_name, 'w', encoding='utf-8') as f:
             f.write("\n".join(all_lines));
 
         print(

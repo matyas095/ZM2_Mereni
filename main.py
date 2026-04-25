@@ -147,7 +147,12 @@ class CLIApp:
         return parser;
 
     def _interactive_handler(self, args):
+        is_tty = sys.stdin.isatty();
+
         if not args.method:
+            if not is_tty:
+                print("Error: Metoda nezadána a stdin není terminál (nelze interaktivně promptovat).");
+                sys.exit(2);
             print("Statistika Tůl - Interaktivní režim");
             print("---------------------------------------");
             print(f"Dostupné metody: {', '.join(self.methods.keys())}");
@@ -174,42 +179,56 @@ class CLIApp:
             if current_val is None:
                 prompt = extra.get('help', dest);
                 is_required = extra.get("required", False);
+                default = extra.get('default', None);
 
                 if has_batch and dest == "input":
                     continue;
 
                 if extra.get("is_file") and is_required:
-                    from tkinter import filedialog, Tk;
-                    root = Tk();
-                    root.withdraw();
-                    print(f"[{args.method}] Vyberte {prompt}...");
-                    picked_path = filedialog.askopenfilename(title=prompt);
-                    root.destroy();
+                    if not is_tty:
+                        continue;
+                    picked_path = None;
+                    try:
+                        from tkinter import filedialog, Tk;
+                        root = Tk();
+                        root.withdraw();
+                        print(f"[{args.method}] Vyberte {prompt}...");
+                        picked_path = filedialog.askopenfilename(title=prompt);
+                        root.destroy();
+                    except Exception:
+                        pass;
 
-                    if picked_path: setattr(args, dest, picked_path);
+                    if picked_path:
+                        setattr(args, dest, picked_path);
                     else:
-                        user_val = input(f"Vložte cestu k {dest} ručně: ").strip().replace('"', '').replace("'", "");
+                        user_val = input(f"Vložte cestu k {dest}: ").strip().replace('"', '').replace("'", "");
                         setattr(args, dest, user_val if user_val else None);
 
-                    continue ;
+                    continue;
 
                 is_boolean = extra.get("action") in ["store_true", "store_false"];
                 if is_boolean and current_val is True: continue;
 
                 if current_val is None or (is_boolean and current_val is False):
-                    prompt = extra.get('help', dest);
-                    is_required = extra.get("required", False);
-
                     if is_boolean and not is_required:
                         if any(vars(args).values()): continue;
 
                     if is_boolean:
+                        if not is_tty:
+                            setattr(args, dest, False);
+                            continue;
                         choice = input(f"Zapnout {prompt}? (y/n): ").lower().strip();
                         setattr(args, dest, choice == 'y');
                         continue;
 
-                default = extra.get('default', None);
                 if not is_required and default is not None:
+                    setattr(args, dest, default);
+                    continue;
+
+                if not is_tty:
+                    if is_required:
+                        print(f"Error: Chybí povinný parametr --{dest} ({prompt}) a stdin není terminál.");
+                        sys.exit(2);
                     setattr(args, dest, default);
                     continue;
 

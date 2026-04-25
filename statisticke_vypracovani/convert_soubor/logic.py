@@ -44,19 +44,43 @@ class ConvertSoubor(Method):
         if len(lines) < 2:
             raise Exception("Soubor má méně než 2 řádky");
 
-        # Detekce formátu: CASSY má hlavičku s "(...)" na druhém řádku (první je metadata)
+        # Auto-detekce oddělovače podle počtu výskytů na 1. řádku
+        sep = max(['\t', ';', ','], key=lambda s: lines[0].count(s));
+        if lines[0].count(sep) == 0:
+            sep = '\t';
+
+        def _is_numeric_row(line):
+            cells = [c.strip().replace(',', '.') for c in line.split(sep) if c.strip()];
+            if not cells:
+                return False;
+            try:
+                for c in cells: float(c);
+                return True;
+            except ValueError:
+                return False;
+
+        # Detekce formátu:
+        #   CASSY: 2. řádek "label (unit)" — má závorky
+        #   2-řádková hlavička: 2. řádek units (nečíselný)
+        #   1-řádková hlavička: 2. řádek už data (číselný)
         if '(' in lines[1] and ')' in lines[1]:
-            combined_headers = [x.strip() for x in lines[1].split('\t') if x.strip()];
+            combined_headers = [x.strip() for x in lines[1].split(sep) if x.strip()];
             data_start = 2;
+        elif _is_numeric_row(lines[1]):
+            combined_headers = [x.strip() for x in lines[0].split(sep) if x.strip()];
+            data_start = 1;
         else:
-            labels = [x.strip() for x in lines[0].split('\t') if x.strip()];
-            units = [x.strip() for x in lines[1].split('\t') if x.strip()];
-            combined_headers = [f"{label} ({unit})" for label, unit in zip(labels, units)];
+            labels = [x.strip() for x in lines[0].split(sep) if x.strip()];
+            units = [x.strip() for x in lines[1].split(sep) if x.strip()];
+            combined_headers = [
+                f"{label} ({units[i]})" if i < len(units) else label
+                for i, label in enumerate(labels)
+            ];
             data_start = 2;
 
         toWrite = {h: [] for h in combined_headers};
         for raw in lines[data_start:]:
-            cells = [c.strip().replace(',', '.') for c in raw.split('\t')];
+            cells = [c.strip().replace(',', '.') for c in raw.split(sep)];
             for i, h in enumerate(combined_headers):
                 if i < len(cells) and cells[i]:
                     toWrite[h].append(cells[i]);

@@ -68,6 +68,15 @@ class NeprimaChyba(Method):
             if len(missing_vars) > 0:
                 raise Exception(f"Chybí mi tu data v 'ELEMENTY':\n{color_print.BOLD}{missing_vars}{color_print.END}");
 
+            SYMPY_RESERVED = {'I', 'E', 'pi', 'oo', 'S', 'N', 'O', 'Q', 'C'};
+            collisions = SYMPY_RESERVED & set(variables);
+            if collisions:
+                raise ValueError(
+                    f"Názvy proměnných {sorted(collisions)} kolidují s vyhrazenými symboly SymPy "
+                    f"(I=imag. jednotka, E=Eulerovo č., pi, oo=∞, S, N, O, Q, C). "
+                    f"Přejmenuj je v ELEMENTY i FUNKCE (např. I → I_c)."
+                );
+
             sym_map = {name: symbols(name) for name in variables};
             y = parse_expr(rce, local_dict=sym_map); # type: ignore
             derivatives = [y.diff(x) for x in sym_map];

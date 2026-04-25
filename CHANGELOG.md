@@ -9,37 +9,8 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 **Distribuce**
 
 - Docker image — automatický publish na `ghcr.io/matyas095/zm2_mereni` pro každý tag i merge do `main` (workflow `.github/workflows/docker.yml`).
-- AppImage pro Linux — jediný spustitelný `.AppImage` soubor, není třeba rozbalovat.
-- macOS build — nové artefakty `statistika_*_macos.tar.gz` a `statistika_grafy_*_macos.tar.gz` (PyInstaller na `macos-latest`).
-
-**Nová metoda**
-
-- `integrace` (alias `int`) — numerická integrace kumulativní lichoběžníkovou metodou (`scipy.integrate.cumulative_trapezoid`) jako párová metoda k `derivace`.
-
-**Kvalita kódu**
-
-- `pyproject.toml` — centrální konfigurace pro ruff, mypy, coverage.
-- Ruff lint + format v CI a pre-commit hooku.
-- Mypy type-check v CI a pre-commit hooku (lenientní baseline).
-- Coverage badge v README + Codecov upload v CI.
-- Refactor `_interactive_handler` v `main.py` na samostatné helpery (`_resolve_method`, `_prompt_file`, `_prompt_bool`, `_prompt_value`, `_fill_method_args`, `_check_input_files_exist`).
-
-**UX vylepšení**
-
-- Did-you-mean návrhy přes `difflib.get_close_matches` pro překlepy v názvu metody (`reggrese` → „Měli jste na mysli: regrese, reg?").
-- TTY guard v interaktivním handleru — žádný `EOFError` při neinteraktivním stdin.
-- Tkinter import s `try/except` fallbackem — binárka bez tkinteru funguje, padá rovnou do textového promptu.
-- `--typ-b` jako opakovatelný flag s jednoduchou syntaxí: `-tb U=0.05:rovnomerne -tb t=0.5` (zachována zpětná kompatibilita s JSON).
-
-**Robustnost**
-
-- `utils.locked_open` — `fcntl.flock` (Linux/Mac) + `msvcrt.locking` (Windows) fallback. Aplikováno ve všech zápisech do `outputs/` a `latex_output/`.
-- Numerická stabilita — Python `sum()` → `np.sum()` v `objects/measurement.py`, `format_table`, `neprima_chyba`.
-- `neprima_chyba` — čitelná `ValueError` při kolizi názvů proměnných se SymPy reserved symboly (`I, E, pi, oo, S, N, O, Q, C`) místo neinformativního `Can't calculate derivative wrt I`.
-
-**Build a velikost**
-
-- Vyřazení nepotřebných balíků z PyInstaller buildu (`sphinx`, `babel`, `docutils`, `alabaster`, `jinja2`, `markupsafe`) — úspora ~49 MB instalovaných.
+- AppImage pro Linux — jediný spustitelný soubor `Statistika-*.AppImage`, není třeba rozbalovat.
+- macOS build — nové buildy `statistika_*_macos.tar.gz` a `statistika_grafy_*_macos.tar.gz` (PyInstaller na `macos-latest`).
 
 ## [v0.4] - 2026-04-25
 
@@ -127,7 +98,7 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - Shell completion pro bash/zsh prostřednictvím knihovny `argcomplete`.
 - Integrační testy ve složce `tests/integration/`.
 - Coverage report pomocí `coverage.py` v CI workflow.
-- Složka `examples/` s reálnými workflow pro konkrétní úlohy (rozpis v sekci *Dokumentace*).
+- Složka `examples/` s reálnými workflow pro konkrétní úlohy (rozpis úloh viz sekce *Dokumentace*).
 
 **LaTeX tabulky**
 

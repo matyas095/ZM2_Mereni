@@ -1,21 +1,22 @@
-# Bezpečnostní politika (Security Policy)
+# Bezpečnostní politika
 
-## Podporované verze
+## 1 Podporované verze
 
 | Verze | Podpora |
 |-------|---------|
 | nejnovější release | :white_check_mark: |
 | starší verze | :x: |
 
-## Hlášení zranitelností
+## 2 Hlášení zranitelností
 
-Pokud objevíte bezpečnostní zranitelnost, **neotevírejte veřejné issue**.
+Pokud najdeš bezpečnostní zranitelnost, **neotevírej veřejné issue**.
 
-Místo toho pošlete e-mail na: **matyas.kutaj@gmail.com**
+Místo toho pošli e-mail na: **matyas.kutaj@gmail.com**
 
-Uveďte prosím:
-- Popis zranitelnosti
-- Kroky k reprodukci
-- Potenciální dopad
+V hlášení uveď:
 
-Odpovíme do 7 pracovních dnů.
+- popis zranitelnosti,
+- kroky k reprodukci,
+- potenciální dopad.
+
+Odpovím do 7 pracovních dnů.

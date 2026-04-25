@@ -39,7 +39,7 @@ def check_for_updates():
             local_v = CURRENT_VERSION.lstrip('v').strip();
 
             if version_to_tuple(remote_v) > version_to_tuple(local_v):
-                print(f"Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink:{url}");
+                print(f"Update Available: {CURRENT_VERSION} -> {remote_tag}\nLink: {url}");
             else: pass
 
         elif response.status_code == 404:
@@ -48,12 +48,28 @@ def check_for_updates():
     except Exception as e:
         print(f"❌ Connection error: {e}");
 
-class CLIApp:
-    def __init__(self):
-        self.methods: dict[str, Method] = {};
-        self._discover_methods();
+_METHOD_ALIASES = {
+    "ap": "aritmeticky_prumer",
+    "nc": "neprima_chyba",
+    "vp": "vazeny_prumer",
+    "der": "derivace",
+    "cs": "convert_soubor",
+    "jt": "join_tables",
+    "ft": "format_table",
+    "et": "extract_table",
+    "gi": "graf_interval",
+    "hist": "histogram",
+    "g": "graf",
+    "reg": "regrese",
+};
 
-    def _discover_methods(self):
+
+class CLIApp:
+    def __init__(self, only: set = None):
+        self.methods: dict[str, Method] = {};
+        self._discover_methods(only);
+
+    def _discover_methods(self, only: set = None):
         folder = os.path.join(BASE_DIR, "statisticke_vypracovani");
         if not os.path.exists(folder):
             return;
@@ -62,6 +78,8 @@ class CLIApp:
             if os.path.isdir(os.path.join(folder, d)) and not d.startswith(("_", "."))
         ];
         for m_name in method_dirs:
+            if only and m_name not in only:
+                continue;
             try:
                 module = importlib.import_module(f"statisticke_vypracovani.{m_name}");
                 for attr_name in dir(module):
@@ -72,6 +90,8 @@ class CLIApp:
                         instance = attr();
                         self.methods[m_name] = instance;
                         break;
+            except ImportError:
+                pass;
             except Exception as e:
                 print(f"Nepodařilo se načíst modul {m_name}: {e}");
 
@@ -80,9 +100,33 @@ class CLIApp:
         subparsers = parser.add_subparsers(dest="method", help="Vyberte metodu");
 
         parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {CURRENT_VERSION}");
+        parser.add_argument("--list-units", action="store_true",
+                           help="Vypíše podporované SI jednotky a prefixy");
+
+        ALIASES = {
+            "aritmeticky_prumer": ["ap"],
+            "neprima_chyba": ["nc"],
+            "vazeny_prumer": ["vp"],
+            "derivace": ["der"],
+            "convert_soubor": ["cs"],
+            "join_tables": ["jt"],
+            "format_table": ["ft"],
+            "extract_table": ["et"],
+            "graf_interval": ["gi"],
+            "histogram": ["hist"],
+            "graf": ["g"],
+            "regrese": ["reg"],
+        };
 
         for m_name, method_instance in self.methods.items():
-            sub_parser = subparsers.add_parser(m_name, help=method_instance.description);
+            aliases = ALIASES.get(m_name, []);
+            sub_parser = subparsers.add_parser(m_name, aliases=aliases, help=method_instance.description);
+            sub_parser.add_argument("--output-format", choices=["text", "json"], default="text",
+                                   help="Formát výstupu: text (výchozí) nebo json");
+            sub_parser.add_argument("--no-color", action="store_true",
+                                   help="Vypne barevný výstup");
+            sub_parser.add_argument("-q", "--quiet", action="store_true",
+                                   help="Minimální výstup (jen hodnoty, bez dekorací)");
 
             try:
                 for arg in method_instance.get_args_info():
@@ -112,7 +156,14 @@ class CLIApp:
                 selected = input("Zadejte metodu: ").strip();
             args.method = selected;
 
+        # Alias → canonical name
+        if args.method in _METHOD_ALIASES:
+            args.method = _METHOD_ALIASES[args.method];
+
         method_instance = self.methods[args.method];
+
+        # Pokud je zadaný --batch, přeskočíme požadavek na --input
+        has_batch = getattr(args, 'batch', None);
 
         for original_extra in method_instance.get_args_info():
             extra = original_extra.copy();
@@ -123,6 +174,9 @@ class CLIApp:
             if current_val is None:
                 prompt = extra.get('help', dest);
                 is_required = extra.get("required", False);
+
+                if has_batch and dest == "input":
+                    continue;
 
                 if extra.get("is_file") and is_required:
                     from tkinter import filedialog, Tk;
@@ -171,34 +225,102 @@ class CLIApp:
                     setattr(args, dest, default);
 
         file_to_check = getattr(args, 'input', None);
-        if file_to_check and not os.path.isfile(file_to_check):
-            print(f"Error: Soubor '{file_to_check}' nebyl nalezen.");
-            if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
-            sys.exit(1);
+        if has_batch:
+            file_to_check = None;
+        if file_to_check:
+            files = file_to_check if isinstance(file_to_check, list) else [file_to_check];
+            for f in files:
+                if isinstance(f, str) and not os.path.isfile(f):
+                    print(f"Error: Soubor '{f}' nebyl nalezen.");
+                    if getattr(sys, 'frozen', False): input("Stiskněte Enter...");
+                    sys.exit(1);
 
         return method_instance;
 
+    def _print_units(self):
+        from objects.units import SI_PREFIXES, BASE_UNITS, UNIT_ALIASES;
+        print("Podporované SI jednotky a prefixy\n");
+        print("Základní/odvozené jednotky:");
+        units_sorted = sorted(BASE_UNITS);
+        for i in range(0, len(units_sorted), 10):
+            print("  " + ", ".join(units_sorted[i:i+10]));
+        print("\nSI prefixy:");
+        items = sorted(SI_PREFIXES.items(), key=lambda kv: kv[1]);
+        for prefix, mult in items:
+            import math;
+            try:
+                exp = int(math.log10(mult));
+            except Exception:
+                exp = 0;
+            print(f"  {prefix:4s} 10^{exp:+d}");
+        print("\nAliasy:");
+        for alias, canonical in UNIT_ALIASES.items():
+            print(f"  {alias} → {canonical}");
+        print("\nPříklady převodů:");
+        examples = ["mA → A", "kV → V", "MΩ → Ω", "GHz → Hz", "μs → s", "km → m"];
+        print("  " + ", ".join(examples));
+
     def run(self):
         parser = self._build_parser();
+
+        try:
+            import argcomplete;
+            argcomplete.autocomplete(parser);
+        except ImportError:
+            pass;
+
         args = parser.parse_args();
+
+        if getattr(args, 'list_units', False):
+            self._print_units();
+            return;
+
+        if getattr(args, 'no_color', False):
+            os.environ["ZM2_COLORS"] = "none";
+
+        from objects.logger import configure as _configure_logger;
+        _configure_logger(
+            verbose=getattr(args, 'verbose', False),
+            quiet=getattr(args, 'quiet', False),
+            no_color=getattr(args, 'no_color', False),
+        );
+
+        output_format = getattr(args, 'output_format', 'text');
 
         method_instance = self._interactive_handler(args);
 
         method_instance.validate(args);
 
-        result = method_instance.run(args);
-        try:
-            if getattr(args, 'save', False) and result:
-                output_file = f"vysledek_{args.method}.txt"
-                with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(str(result))
-                print(f"💾 Výsledek uložen do: {output_file}")
-        except Exception as e:
-            print(f"Chyba incident: {e}");
+        if output_format == "json":
+            result = method_instance.run(args);
+            if isinstance(result, dict):
+                from objects.measurement_set import MeasurementSet;
+                ms = MeasurementSet.from_dict({k: [v[0]] for k, v in result.items()});
+                for m_name, vals in result.items():
+                    m = ms.get(m_name);
+                    m._mean = vals[0];
+                    m._u_A = vals[1] if len(vals) > 1 else 0;
+                print(ms.to_json());
+            else:
+                import json;
+                print(json.dumps(result, indent=2, ensure_ascii=False, default=str));
+        else:
+            result = method_instance.run(args);
+            try:
+                if getattr(args, 'save', False) and result:
+                    output_file = f"vysledek_{args.method}.txt"
+                    with open(output_file, "w", encoding="utf-8") as f:
+                        f.write(str(result))
+                    print(f"Výsledek uložen do: {output_file}")
+            except Exception as e:
+                print(f"Chyba incident: {e}");
 
         if getattr(sys, 'frozen', False):
             print("\n---------------------------------------");
-            input("Hotovo. Stiskni Enter pro ukončení vro...");
+            try:
+                input("Hotovo. Stiskni Enter pro ukončení vro...");
+            except EOFError:
+                pass;
 
 if __name__ == "__main__":
     check_for_updates();

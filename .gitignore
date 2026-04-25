@@ -1,34 +1,61 @@
-# PyInstaller folders
+# PyInstaller build artefakty
 build/
 dist/
 release/
+builder/compiled/
+builder/release_simulation/
 *.spec
 
-# Security / Certificates (DO NOT SHARE THESE ON GITHUB)
-*.pfx
-*.ps1
-cert_password.txt
-security/
-*.sh
+# Sphinx HTML výstup (zdroje v docs/ zůstávají v repu)
+docs/_build/
+
+# Coverage report
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
 
 # Python cache
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Local environment
+# Virtual environment
 .venv/
+venv/
+env/
+
+# IDE
 .vscode/
-PYINSTALLER_CMD
-
-# Git
-.secrets
-deploy.sh
-
-# Trash
-*.xlsx
-get_requirements.py
-grafy_metoda_graf/
-*.tar
-latex_output/
-tester.py
 .idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Runtime výstupy metod
+outputs/
+latex_output/
+grafy_metoda_graf/
+
+# Security — privátní klíče (veřejný certifikát JE v repu)
+*.pfx
+*.pem
+*.key
+cert_password.txt
+.secrets
+.env
+.env.local
+
+# Dočasné soubory
+*.tar
+*.tar.gz
+*.zip
+PYINSTALLER_CMD
+tester.py
+tmp/
+temp/

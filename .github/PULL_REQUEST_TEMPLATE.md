@@ -1,17 +1,18 @@
 ## Popis změn
-<!-- Stručně popište, co tento PR mění a proč -->
+<!-- Stručně popsat, co PR mění a proč -->
 
 ## Typ změny
 - [ ] Oprava chyby (bug fix)
 - [ ] Nová funkce (feature)
 - [ ] Refaktoring
 - [ ] Dokumentace
-- [ ] Jiné: 
+- [ ] Jiné:
 
 ## Kontrolní seznam
 - [ ] Kód prošel `python3 -m py_compile`
-- [ ] Otestováno lokálně
-- [ ] Popis změn je jasný
+- [ ] Testy prošly `python3 -m unittest discover tests`
+- [ ] Přidány testy pro novou funkci (pokud je to relevantní)
+- [ ] Aktualizován README.md / CHANGELOG.md (pokud je to relevantní)
 
-## Souvisejí issue
+## Související issue
 <!-- Fixes #123 -->

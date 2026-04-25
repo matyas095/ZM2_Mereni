@@ -6,6 +6,16 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 
 ### Přidáno
 
+**Distribuce**
+
+- Docker image — automatický publish na `ghcr.io/matyas095/zm2_mereni` pro každý tag i merge do `main` (workflow `.github/workflows/docker.yml`).
+- AppImage pro Linux — jediný spustitelný soubor `Statistika-*.AppImage`, není třeba rozbalovat.
+- macOS build — nové buildy `statistika_*_macos.tar.gz` a `statistika_grafy_*_macos.tar.gz` (PyInstaller na `macos-latest`).
+
+## [v0.4] - 2026-04-25
+
+### Přidáno
+
 **Nové metody**
 
 - `vazeny_prumer` — vážený průměr z hodnot naměřených s rozdílnou přesností.
@@ -88,7 +98,7 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - Shell completion pro bash/zsh prostřednictvím knihovny `argcomplete`.
 - Integrační testy ve složce `tests/integration/`.
 - Coverage report pomocí `coverage.py` v CI workflow.
-- Příklady workflow ve složce `examples/` (aktuálně: termistor — ZM2 úloha #9).
+- Složka `examples/` s reálnými workflow pro konkrétní úlohy (rozpis úloh viz sekce *Dokumentace*).
 
 **LaTeX tabulky**
 

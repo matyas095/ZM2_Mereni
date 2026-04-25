@@ -23,7 +23,7 @@ Co se stalo místo toho.
 ## Prostředí
 - OS: (např. Ubuntu 22.04, Windows 11)
 - Python: (např. 3.12)
-- Verze ZM2_Mereni: (např. v0.3 nebo commit hash)
+- Verze ZM2_Mereni: (např. v0.4 nebo commit hash)
 - Způsob spuštění: zdrojový kód / binární distribuce
 
 ## Další kontext

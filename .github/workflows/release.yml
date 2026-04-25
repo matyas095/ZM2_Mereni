@@ -44,7 +44,6 @@ jobs:
           --exclude-module pyarrow \
           --exclude-module matplotlib --exclude-module mpl_toolkits \
           --exclude-module PIL --exclude-module Pillow --exclude-module pillow \
-          --exclude-module tkinter --exclude-module _tkinter \
           --exclude-module pandas --exclude-module openpyxl \
           --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver \
           --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks \
@@ -55,6 +54,7 @@ jobs:
           --hidden-import scipy.optimize \
           --hidden-import scipy.stats \
           --hidden-import scipy.linalg \
+          --hidden-import tkinter \
           --hidden-import statisticke_vypracovani.base \
           --hidden-import objects.measurement \
           --hidden-import objects.measurement_set \
@@ -77,10 +77,38 @@ jobs:
           cp security/matyas095Gameing_public.crt dist/statistika_${{ github.ref_name }}_linux/
           tar -czf statistika_${{ github.ref_name }}_linux.tar.gz -C dist .
 
+      - name: Build AppImage
+        run: |
+          wget -q -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          APPDIR=Statistika.AppDir
+          mkdir -p $APPDIR/usr/bin
+          cp -a dist/statistika_${{ github.ref_name }}_linux/. $APPDIR/usr/bin/
+          cat > $APPDIR/AppRun <<EOF
+          #!/bin/bash
+          HERE="\$(dirname "\$(readlink -f "\$0")")"
+          exec "\$HERE/usr/bin/statistika_${{ github.ref_name }}_linux" "\$@"
+          EOF
+          chmod +x $APPDIR/AppRun
+          cat > $APPDIR/statistika.desktop <<'EOF'
+          [Desktop Entry]
+          Name=Statistika ZM2
+          Exec=statistika
+          Icon=statistika
+          Type=Application
+          Terminal=true
+          Categories=Science;Education;
+          EOF
+          # 1×1 placeholder PNG
+          printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xfc\xcf\xc0\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > $APPDIR/statistika.png
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run $APPDIR Statistika-${{ github.ref_name }}-x86_64.AppImage
+
       - uses: actions/upload-artifact@v4
         with:
           name: statistika-linux
-          path: statistika_${{ github.ref_name }}_linux.tar.gz
+          path: |
+            statistika_${{ github.ref_name }}_linux.tar.gz
+            Statistika-${{ github.ref_name }}-x86_64.AppImage
 
   build-grafy-linux:
     runs-on: ubuntu-latest
@@ -154,6 +182,139 @@ jobs:
           name: grafy-linux
           path: statistika_grafy_${{ github.ref_name }}_linux.tar.gz
 
+  build-statistika-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install
+        run: |
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build
+        run: |
+          pyinstaller --onedir --noconfirm --clean \
+          --name statistika_${{ github.ref_name }}_macos \
+          --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --add-data 'objects:objects' \
+          --add-data 'utils.py:.' \
+          --add-data 'main.py:.' \
+          --exclude-module IPython --exclude-module notebook \
+          --exclude-module test --exclude-module tests \
+          --exclude-module sklearn --exclude-module scikit-learn \
+          --exclude-module pyarrow \
+          --exclude-module matplotlib --exclude-module mpl_toolkits \
+          --exclude-module PIL --exclude-module Pillow --exclude-module pillow \
+          --exclude-module pandas --exclude-module openpyxl \
+          --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver \
+          --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks \
+          --collect-submodules sympy \
+          --collect-submodules scipy \
+          --hidden-import sympy.parsing.latex \
+          --hidden-import sympy.parsing.sympy_parser \
+          --hidden-import scipy.optimize \
+          --hidden-import scipy.stats \
+          --hidden-import scipy.linalg \
+          --hidden-import tkinter \
+          --hidden-import statisticke_vypracovani.base \
+          --hidden-import objects.measurement \
+          --hidden-import objects.measurement_set \
+          --hidden-import objects.input_parser \
+          --hidden-import objects.config \
+          --hidden-import objects.units \
+          --hidden-import objects.logger \
+          main_statistika.py
+
+      - name: Cleanup
+        run: |
+          find dist/ -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Smoke test
+        run: |
+          ./dist/statistika_${{ github.ref_name }}_macos/statistika_${{ github.ref_name }}_macos --help
+
+      - name: Package
+        run: |
+          tar -czf statistika_${{ github.ref_name }}_macos.tar.gz -C dist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: statistika-macos
+          path: statistika_${{ github.ref_name }}_macos.tar.gz
+
+  build-grafy-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install
+        run: |
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build
+        run: |
+          pyinstaller --onedir --noconfirm --clean \
+          --name statistika_grafy_${{ github.ref_name }}_macos \
+          --add-data 'statisticke_vypracovani:statisticke_vypracovani' \
+          --add-data 'objects:objects' \
+          --add-data 'utils.py:.' \
+          --add-data 'main.py:.' \
+          --exclude-module IPython --exclude-module notebook \
+          --exclude-module test --exclude-module tests \
+          --exclude-module sklearn --exclude-module scikit-learn \
+          --exclude-module pyarrow \
+          --exclude-module pandas --exclude-module openpyxl \
+          --exclude-module matplotlib.tests --exclude-module scipy.tests \
+          --exclude-module sympy.testing --exclude-module sympy.benchmarks \
+          --collect-submodules sympy \
+          --collect-submodules scipy \
+          --collect-submodules matplotlib \
+          --hidden-import sympy.parsing.latex \
+          --hidden-import sympy.parsing.sympy_parser \
+          --hidden-import scipy.optimize \
+          --hidden-import scipy.stats \
+          --hidden-import scipy.linalg \
+          --hidden-import matplotlib \
+          --hidden-import matplotlib.pyplot \
+          --hidden-import matplotlib.backends.backend_agg \
+          --hidden-import statisticke_vypracovani.base \
+          --hidden-import objects.measurement \
+          --hidden-import objects.measurement_set \
+          --hidden-import objects.input_parser \
+          --hidden-import objects.config \
+          --hidden-import objects.units \
+          --hidden-import objects.logger \
+          main_grafy.py
+
+      - name: Cleanup
+        run: |
+          find dist/ -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+          find dist/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Smoke test
+        run: |
+          ./dist/statistika_grafy_${{ github.ref_name }}_macos/statistika_grafy_${{ github.ref_name }}_macos --help
+
+      - name: Package
+        run: |
+          tar -czf statistika_grafy_${{ github.ref_name }}_macos.tar.gz -C dist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grafy-macos
+          path: statistika_grafy_${{ github.ref_name }}_macos.tar.gz
+
   build-statistika-windows:
     runs-on: windows-latest
     steps:
@@ -183,7 +344,6 @@ jobs:
           --exclude-module pyarrow `
           --exclude-module matplotlib --exclude-module mpl_toolkits `
           --exclude-module PIL --exclude-module Pillow --exclude-module pillow `
-          --exclude-module tkinter --exclude-module _tkinter `
           --exclude-module pandas --exclude-module openpyxl `
           --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver `
           --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks `
@@ -194,6 +354,7 @@ jobs:
           --hidden-import scipy.optimize `
           --hidden-import scipy.stats `
           --hidden-import scipy.linalg `
+          --hidden-import tkinter `
           --hidden-import statisticke_vypracovani.base `
           --hidden-import objects.measurement `
           --hidden-import objects.measurement_set `
@@ -321,7 +482,13 @@ jobs:
           path: statistika_grafy_${{ github.ref_name }}_windows.zip
 
   create-release:
-    needs: [build-statistika-linux, build-grafy-linux, build-statistika-windows, build-grafy-windows]
+    needs:
+      - build-statistika-linux
+      - build-grafy-linux
+      - build-statistika-windows
+      - build-grafy-windows
+      - build-statistika-macos
+      - build-grafy-macos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -337,10 +504,11 @@ jobs:
 
             ## Stažení
 
-            | Balík | Linux | Windows |
-            |-------|-------|---------|
-            | **Statistika** (výpočty) | `statistika_*_linux.tar.gz` | `statistika_*_windows.zip` |
-            | **Grafy** (vizualizace) | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` |
+            | Balík | Linux | Windows | macOS |
+            |-------|-------|---------|-------|
+            | **Statistika** (výpočty) | `statistika_*_linux.tar.gz` + `Statistika-*.AppImage` | `statistika_*_windows.zip` | `statistika_*_macos.tar.gz` |
+            | **Grafy** (vizualizace) | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` | `statistika_grafy_*_macos.tar.gz` |
+            | **Docker** | `docker pull ghcr.io/matyas095/zm2_mereni:${{ github.ref_name }}` | | |
 
             ## Metody
 
@@ -369,12 +537,23 @@ jobs:
             ## Použití
 
             ```bash
-            # Linux
+            # Linux (tar.gz)
             tar -xzf statistika_${{ github.ref_name }}_linux.tar.gz
             ./statistika_${{ github.ref_name }}_linux/statistika -h
 
+            # Linux (AppImage)
+            chmod +x Statistika-${{ github.ref_name }}-x86_64.AppImage
+            ./Statistika-${{ github.ref_name }}-x86_64.AppImage -h
+
             # Windows
             .\statistika\statistika.exe -h
+
+            # macOS
+            tar -xzf statistika_${{ github.ref_name }}_macos.tar.gz
+            ./statistika_${{ github.ref_name }}_macos/statistika -h
+
+            # Docker
+            docker run --rm -v "$PWD:/data" ghcr.io/matyas095/zm2_mereni:${{ github.ref_name }} ap -i mereni.txt
 
             # Přehled podporovaných SI jednotek
             ./statistika --list-units
@@ -400,14 +579,17 @@ jobs:
             > [!WARNING]
             > V datových souborech (formát `VELIČINA=data`) používáme desetinnou tečku, čárka je oddělovač hodnot. V LaTeX výstupu se čísla převádí na desetinnou čárku.
 
-            ### Instalace certifikátu
+            ### Instalace certifikátu (jen Windows)
 
-            Pro odstranění varování Windows/Linux spustíme přiložený skript `install_trust` jako administrátor.
+            Pro odstranění varování SmartScreenu při prvním spuštění `.exe` spustíme jednorázově přiložený skript `install_trust_windows.bat` jako administrátor — naimportuje veřejnou část podpisového certifikátu (`matyas095Gameing_public.crt`) do důvěryhodných kořenových certifikátů. Linuxová a macOS distribuce certifikát nevyžaduje.
           files: |
             statistika-linux/*.tar.gz
+            statistika-linux/*.AppImage
             grafy-linux/*.tar.gz
             statistika-windows/*.zip
             grafy-windows/*.zip
+            statistika-macos/*.tar.gz
+            grafy-macos/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN_MAT }}
 
@@ -417,4 +599,4 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "Release ${{ github.ref_name }} dokončen — Statistika + Grafy (Linux + Windows)"
+          content: "Release ${{ github.ref_name }} dokončen — Statistika + Grafy (Linux + Windows + macOS, AppImage, Docker)"

@@ -17,8 +17,8 @@ jobs:
   build-statistika-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -103,7 +103,7 @@ jobs:
           printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xfc\xcf\xc0\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > $APPDIR/statistika.png
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run $APPDIR Statistika-${{ github.ref_name }}-x86_64.AppImage
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: statistika-linux
           path: |
@@ -113,8 +113,8 @@ jobs:
   build-grafy-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -177,7 +177,7 @@ jobs:
           cp security/matyas095Gameing_public.crt dist/statistika_grafy_${{ github.ref_name }}_linux/
           tar -czf statistika_grafy_${{ github.ref_name }}_linux.tar.gz -C dist .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: grafy-linux
           path: statistika_grafy_${{ github.ref_name }}_linux.tar.gz
@@ -185,8 +185,8 @@ jobs:
   build-statistika-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -243,7 +243,7 @@ jobs:
         run: |
           tar -czf statistika_${{ github.ref_name }}_macos.tar.gz -C dist .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: statistika-macos
           path: statistika_${{ github.ref_name }}_macos.tar.gz
@@ -251,8 +251,8 @@ jobs:
   build-grafy-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -310,7 +310,7 @@ jobs:
         run: |
           tar -czf statistika_grafy_${{ github.ref_name }}_macos.tar.gz -C dist .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: grafy-macos
           path: statistika_grafy_${{ github.ref_name }}_macos.tar.gz
@@ -318,8 +318,8 @@ jobs:
   build-statistika-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -391,7 +391,7 @@ jobs:
           $batch | Out-File -FilePath dist\statistika\install_trust_windows.bat -Encoding ascii
           Compress-Archive -Path dist\statistika -DestinationPath statistika_${{ github.ref_name }}_windows.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: statistika-windows
           path: statistika_${{ github.ref_name }}_windows.zip
@@ -399,8 +399,8 @@ jobs:
   build-grafy-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -476,7 +476,7 @@ jobs:
           $batch | Out-File -FilePath dist\statistika_grafy\install_trust_windows.bat -Encoding ascii
           Compress-Archive -Path dist\statistika_grafy -DestinationPath statistika_grafy_${{ github.ref_name }}_windows.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: grafy-windows
           path: statistika_grafy_${{ github.ref_name }}_windows.zip
@@ -491,7 +491,7 @@ jobs:
       - build-grafy-macos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

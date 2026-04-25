@@ -61,6 +61,29 @@ docker build -t zm2 .
 docker run --rm -v "$PWD:/data" zm2 --list-units
 ```
 
+### 1.4 Řešení potíží
+
+#### Windows: `[PYI-xxxx:ERROR] Failed to load Python DLL ... LoadLibrary: Invalid access to memory location.`
+
+Vyskytuje se u binárek `v0.4` a starších na Windows 11 24H2+ (build 26100+) v kombinaci s CPU podporujícím hardware CET (Intel Tiger Lake a novější, AMD Zen 3 a novější). Příčinou je, že knihovna `python312.dll` z Pythonu 3.12 nebyla zkompilována s flagem `/CETCOMPAT`, a kernel-vynucený User Shadow Stack proces ukončí během inicializace.
+
+Řešení:
+
+- **Aktualizovat na verzi `v0.5` nebo novější** — buildy jsou produkovány s Pythonem 3.13, který je s CET kompatibilní.
+- Pro starší binárky lze využít distribuci přes Docker (viz oddíl 1.3), případně instalovat ze zdrojového kódu (viz oddíl 1.1).
+
+Diagnostické příkazy v PowerShellu pro ověření, že se jedná o popsaný problém:
+
+```powershell
+[System.Environment]::OSVersion.Version          # Build >= 26100
+Get-CimInstance Win32_Processor | Select Name    # CPU s CET podporou
+Get-MpComputerStatus | Select SmartAppControlState   # Off/Eval (vylučuje SAC)
+```
+
+#### Linux/macOS: chybějící systémová knihovna při spuštění binárky
+
+V některých minimalistických distribucích (Alpine, hardened buildy) chybí `libgomp.so.1`. Doinstalujte balíček `libgomp1` (Debian/Ubuntu), `libgomp` (Fedora/RHEL), případně použijte Docker distribuci, kde je závislost zahrnuta.
+
 ## 2 Použití
 
 ```bash

@@ -18,6 +18,21 @@ ensure_fzf() {
     fi
 }
 
+# Detekuje dostupný Python launcher (Linux/macOS: python3, Windows Git Bash: python nebo py).
+detect_python() {
+    if command -v python3 &> /dev/null; then
+        echo "python3"
+    elif command -v python &> /dev/null; then
+        echo "python"
+    elif command -v py &> /dev/null; then
+        echo "py -3"
+    else
+        echo ""
+    fi
+}
+
+PYTHON=$(detect_python)
+
 get_next_version() {
     LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0")
     VERSION_NUM=${LAST_TAG#v}
@@ -69,11 +84,19 @@ run_release() {
     fi
 
     echo "Kontroluji syntaxi..."
-    python3 -m py_compile main.py main_statistika.py main_grafy.py utils.py
+    if [[ -z "$PYTHON" ]]; then
+        echo "CHYBA: Nenalezl jsem žádný Python launcher (zkoušel jsem python3, python, py)."
+        echo "Nainstaluj Python 3 a přidej ho do PATH."
+        read -p "Stiskni [Enter] pro návrat do menu..." < /dev/tty
+        return 1
+    fi
+
+    SYNTAX_OK=1
+    $PYTHON -m py_compile main.py main_statistika.py main_grafy.py utils.py || SYNTAX_OK=0
     for f in statisticke_vypracovani/*/logic.py; do
-        python3 -m py_compile "$f"
+        $PYTHON -m py_compile "$f" || SYNTAX_OK=0
     done
-    if [ $? -eq 0 ]; then
+    if [ $SYNTAX_OK -eq 1 ]; then
         echo "Syntaxe OK."
     else
         echo "Syntaxe je špatně, oprav to dřív, než uděláš tag!"

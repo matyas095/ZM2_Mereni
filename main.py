@@ -13,8 +13,8 @@ sys.path = [BASE_DIR, os.path.join(BASE_DIR, "statisticke_vypracovani")] + sys.p
 
 from statisticke_vypracovani.base import Method;
 
-# CURRENT_VERSION = "v0.2";
-CURRENT_VERSION = "v0.2"
+# CURRENT_VERSION = "v0.4";
+CURRENT_VERSION = "v0.4"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest";
 
 def version_to_tuple(v):

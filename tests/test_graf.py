@@ -29,10 +29,10 @@ class TestGraf(unittest.TestCase):
         args = Args();
         args.input = kwargs.get("input", os.path.join(BASE, "statisticke_vypracovani", "graf", "input", "input_File"));
         args.name = kwargs.get("name", "test_graf");
-        args.rovnice = kwargs.get("rovnice", None);
-        args.parametr = kwargs.get("parametr", None);
+        args.rovnice = kwargs.get("rovnice");
+        args.parametr = kwargs.get("parametr");
         args.logaritmicky = kwargs.get("logaritmicky", False);
-        args.fit = kwargs.get("fit", None);
+        args.fit = kwargs.get("fit");
         args.chi2 = kwargs.get("chi2", False);
         args.output_format = kwargs.get("output_format", "text");
         return args;

@@ -1,3 +1,4 @@
+from typing import Any;
 import json;
 from sympy import symbols, lambdify;
 from sympy.parsing.sympy_parser import parse_expr;
@@ -43,9 +44,10 @@ class NeprimaChyba(Method):
             },
             {
                 "flags": ["-tb", "--typ-b"],
-                "help": "Nejistota typu B jako JSON: '{\"t\": 0.5, \"U\": [1, \"rovnomerne\"]}'",
+                "help": "Nejistota typu B. Opakovatelný flag: -tb t=0.5 -tb U=1:rovnomerne, nebo JSON",
                 "required": False,
-                "type": json.loads
+                "action": "append",
+                "type": str
             }
         ];
 
@@ -68,6 +70,15 @@ class NeprimaChyba(Method):
             if len(missing_vars) > 0:
                 raise Exception(f"Chybí mi tu data v 'ELEMENTY':\n{color_print.BOLD}{missing_vars}{color_print.END}");
 
+            SYMPY_RESERVED = {'I', 'E', 'pi', 'oo', 'S', 'N', 'O', 'Q', 'C'};
+            collisions = SYMPY_RESERVED & set(variables);
+            if collisions:
+                raise ValueError(
+                    f"Názvy proměnných {sorted(collisions)} kolidují s vyhrazenými symboly SymPy "
+                    f"(I=imag. jednotka, E=Eulerovo č., pi, oo=∞, S, N, O, Q, C). "
+                    f"Přejmenuj je v ELEMENTY i FUNKCE (např. I → I_c)."
+                );
+
             sym_map = {name: symbols(name) for name in variables};
             y = parse_expr(rce, local_dict=sym_map); # type: ignore
             derivatives = [y.diff(x) for x in sym_map];
@@ -75,19 +86,20 @@ class NeprimaChyba(Method):
             variablesNEW = variables + list(local_const_dict.keys());
             f = lambdify(variablesNEW, derivatives, 'numpy');
 
-            chyby = [x for x in aritmety.keys()];
+            chyby = list(aritmety.keys());
             sorted_keys = sorted(aritmety.keys());
 
             test = [[aritmety[k][0]] for k in sorted_keys] + \
                     [[local_const_dict[n]] for n in variablesNEW if n in local_const_dict] + \
                     [[aritmety[k][-1]] for k in sorted_keys];
 
-            for val in zip(*test): # type: ignore
+            for val in zip(*test, strict=False): # type: ignore
                 toEval = val[:len(val) - len(chyby)];
                 ch = val[-len(chyby):];
 
-                clean_results = [float(x) for x in f(*toEval)];
-                sig_R = np.sqrt(sum([(x * y) ** 2 for x, y in zip(clean_results, ch)]));
+                clean_results = np.asarray([float(x) for x in f(*toEval)], dtype=np.float64);
+                ch_arr = np.asarray(ch, dtype=np.float64);
+                sig_R = float(np.sqrt(np.sum((clean_results * ch_arr) ** 2)));
                 resulte.append((name_rce, sig_R, return_Cislo_Krat_10_Na(sig_R)));
 
         for k, cislo, na_desatou in resulte:
@@ -142,7 +154,7 @@ class NeprimaChyba(Method):
 
         return self._derivace(parsed);
 
-    def run(self, args, do_print=True):
+    def run(self, args: Any, do_print: bool = True) -> dict:
         match args.input:
             case name if name.endswith(".xlsx"):
                 return self._xlsxExtension(args);

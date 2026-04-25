@@ -45,10 +45,10 @@ class TestFormatTable(unittest.TestCase):
         args.input = self.in_path;
         args.output = "out";
         args.si_normalize = kwargs.get("si_normalize", False);
-        args.convert_units = kwargs.get("convert_units", None);
-        args.caption = kwargs.get("caption", None);
-        args.label = kwargs.get("label", None);
-        args.precision = kwargs.get("precision", None);
+        args.convert_units = kwargs.get("convert_units");
+        args.caption = kwargs.get("caption");
+        args.label = kwargs.get("label");
+        args.precision = kwargs.get("precision");
         args.decimal_separator = kwargs.get("decimal_separator", ",");
         args.rows_per_subtable = kwargs.get("rows_per_subtable", 25);
         args.dry_run = kwargs.get("dry_run", False);

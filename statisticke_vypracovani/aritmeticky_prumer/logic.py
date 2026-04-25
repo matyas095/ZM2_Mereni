@@ -1,23 +1,50 @@
+from typing import Any;
 import math;
 import json;
 from statisticke_vypracovani.base import Method;
 from objects.input_parser import InputParser;
 
+def _apply_distribution(a: float, rozlozeni: str) -> float:
+    match rozlozeni:
+        case "rovnomerne":      return a / math.sqrt(3);
+        case "trojuhelnikove":   return a / math.sqrt(6);
+        case "normalni":         return a / 2;
+        case _:                  return float(a);
+
+def _parse_typ_b_simple(spec: str) -> tuple[str, float]:
+    """Parsuje 'KEY=hodnota[:rozlozeni]' → (KEY, u_B). Default rozlozeni: rovnomerne."""
+    if "=" not in spec:
+        raise ValueError(f"Neplatný --typ-b zápis '{spec}'. Očekávaný formát: KEY=hodnota[:rozlozeni]");
+    key, rest = spec.split("=", 1);
+    if ":" in rest:
+        a_str, rozlozeni = rest.split(":", 1);
+        return key.strip(), _apply_distribution(float(a_str), rozlozeni.strip());
+    return key.strip(), _apply_distribution(float(rest), "rovnomerne");
+
 def _parse_typ_b(raw) -> dict:
-    """Parsuje --typ-b JSON do u_B_map. Podporuje číslo nebo [číslo, rozdělení]."""
+    """Parsuje --typ-b. Podporuje:
+        - JSON string/dict: {"t": 0.5, "U": [1, "rovnomerne"]}
+        - Seznam stringů (z opakovatelného flagu): ["t=0.5", "U=1:rovnomerne"]
+        - Seznam s jediným JSON stringem: ['{"R": 0.01}']
+    """
     if not raw:
         return {};
+    if isinstance(raw, list):
+        if len(raw) == 1 and raw[0].lstrip().startswith("{"):
+            raw = raw[0];
+        else:
+            u_B_map = {};
+            for spec in raw:
+                key, val = _parse_typ_b_simple(spec);
+                u_B_map[key] = val;
+            return u_B_map;
     if isinstance(raw, str):
         raw = json.loads(raw);
     u_B_map = {};
     for key, val in raw.items():
         if isinstance(val, list):
             a, rozlozeni = val[0], val[1] if len(val) > 1 else "rovnomerne";
-            match rozlozeni:
-                case "rovnomerne":      u_B_map[key] = a / math.sqrt(3);
-                case "trojuhelnikove":   u_B_map[key] = a / math.sqrt(6);
-                case "normalni":         u_B_map[key] = a / 2;
-                case _:                  u_B_map[key] = float(a);
+            u_B_map[key] = _apply_distribution(a, rozlozeni);
         else:
             u_B_map[key] = float(val);
     return u_B_map;
@@ -60,9 +87,10 @@ class AritmetickyPrumer(Method):
             },
             {
                 "flags": ["-tb", "--typ-b"],
-                "help": "Nejistota typu B jako JSON: '{\"R\": 0.01}' nebo '{\"R\": [0.01, \"rovnomerne\"]}'",
+                "help": "Nejistota typu B. Opakovatelný flag: -tb R=0.01 -tb U=1:rovnomerne, nebo JSON: '{\"R\": [0.01, \"rovnomerne\"]}'",
                 "required": False,
-                "type": json.loads
+                "action": "append",
+                "type": str
             },
             {
                 "flags": ["-ol", "--outliers"],
@@ -122,7 +150,7 @@ class AritmetickyPrumer(Method):
             }
         ];
 
-    def run(self, args, do_print=True):
+    def run(self, args: Any, do_print: bool = True) -> dict:
         from objects.config import config;
         cfg = config();
 

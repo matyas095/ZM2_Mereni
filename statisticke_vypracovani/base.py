@@ -26,7 +26,7 @@ class Method(ABC):
 
         Přetiž v podtřídě pro konkrétní kontroly.
         """
-        pass;
+
 
     def compute(self, args: Any) -> dict:
         """Čistý výpočet bez I/O — výchozí volá run(..., do_print=False).

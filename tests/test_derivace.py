@@ -29,8 +29,8 @@ class TestDerivace(unittest.TestCase):
             pass;
         args = Args();
         args.input = kwargs.get("input", self.input_path);
-        args.x_col = kwargs.get("x_col", None);
-        args.y_col = kwargs.get("y_col", None);
+        args.x_col = kwargs.get("x_col");
+        args.y_col = kwargs.get("y_col");
         args.output = kwargs.get("output", "derivace");
         return args;
 

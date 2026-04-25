@@ -1,7 +1,23 @@
 name: CI
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ruff + mypy
+        run: pip install ruff mypy
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Mypy
+        run: mypy --config-file=pyproject.toml
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -30,9 +46,23 @@ jobs:
           coverage report --omit="tests/*,.venv/*,builder/*,zm2/*" --fail-under=55
           coverage html --omit="tests/*,.venv/*,builder/*,zm2/*" -d htmlcov
 
-      - name: Upload coverage
+      - name: Upload coverage HTML
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-html
           path: htmlcov/
+
+      - name: Upload coverage XML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Codecov upload
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false

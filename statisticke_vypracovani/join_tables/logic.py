@@ -1,8 +1,9 @@
+from typing import Any;
 import re;
 import math;
 from itertools import zip_longest;
 from pathlib import Path;
-from utils import color_print, balance_math_braces;
+from utils import color_print, balance_math_braces, locked_open;
 from statisticke_vypracovani.base import Method;
 
 class JoinTables(Method):
@@ -75,7 +76,7 @@ class JoinTables(Method):
         return content[start:].strip();
 
     def _parse_tex(self, path):
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, encoding='utf-8') as f:
             content = f.read();
 
         tabulars = re.findall(r'\\begin\{tabular\}\{((?:[^{}]|\{[^}]*\})+)\}(.*?)\\end\{tabular\}',
@@ -157,7 +158,7 @@ class JoinTables(Method):
 
         return new_headers, new_rows, warnings;
 
-    def run(self, args, do_print: bool = True) -> dict:
+    def run(self, args: Any, do_print: bool = True) -> dict:
         import json;
         spec1, head1, rows1, cap1, lab1 = self._parse_tex(args.input[0]);
         spec2, head2, rows2, cap2, lab2 = self._parse_tex(args.input[1]);
@@ -241,7 +242,7 @@ class JoinTables(Method):
 
         n_rows = len(merged_rows);
 
-        with open(output_path, "w", encoding="utf-8") as f:
+        with locked_open(output_path, "w", encoding="utf-8") as f:
             if n_rows <= 20:
                 f.write("\\begin{table}[H]\n");
                 f.write("\t\\centering\n");

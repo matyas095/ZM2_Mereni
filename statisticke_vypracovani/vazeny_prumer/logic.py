@@ -1,3 +1,4 @@
+from typing import Any;
 import math;
 import numpy as np;
 from utils import color_print;
@@ -45,7 +46,7 @@ class VazenyPrumer(Method):
             }
         ];
 
-    def run(self, args, do_print=True):
+    def run(self, args: Any, do_print: bool = True) -> dict:
         values = np.array([float(x.strip()) for x in args.values.split(",")]);
         sigmas = np.array([float(x.strip()) for x in args.uncertainties.split(",")]);
         name = getattr(args, 'name', 'x') or 'x';

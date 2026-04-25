@@ -1,5 +1,10 @@
 # ZM2_Mereni — Statistické zpracování dat (Základy měření 2)
 
+[![CI](https://github.com/matyas095/ZM2_Mereni/actions/workflows/ci.yml/badge.svg)](https://github.com/matyas095/ZM2_Mereni/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/matyas095/ZM2_Mereni/branch/main/graph/badge.svg)](https://codecov.io/gh/matyas095/ZM2_Mereni)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+
 Nástroj pro statistické zpracování fyzikálních laboratorních měření. Počítá aritmetické průměry, chyby typu A i B, propagaci chyb přes parciální derivace, vážené průměry a generuje grafy spolu s LaTeX tabulkami vhodnými přímo do protokolu.
 
 Distribuujeme jej ve dvou samostatných balících — **Statistika** (výpočty) a **Grafy** (vizualizace).
@@ -88,6 +93,7 @@ Každá metoda má krátký alias pro rychlejší psaní:
 | `neprima_chyba` | `nc` |
 | `vazeny_prumer` | `vp` |
 | `derivace` | `der` |
+| `integrace` | `int` |
 | `regrese` | `reg` |
 | `convert_soubor` | `cs` |
 | `join_tables` | `jt` |

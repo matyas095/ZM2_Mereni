@@ -1,3 +1,4 @@
+from typing import Any;
 import numpy as np;
 import matplotlib.pyplot as plt;
 from pathlib import Path;
@@ -51,7 +52,7 @@ class Histogram(Method):
             }
         ];
 
-    def run(self, args, do_print=True):
+    def run(self, args: Any, do_print: bool = True) -> dict:
         data = InputParser.from_file(args.input);
         col_name = getattr(args, 'column', None) or data[0].name;
         m = data.get(col_name);

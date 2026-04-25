@@ -21,7 +21,7 @@ def load_config() -> dict:
     for path in CONFIG_LOCATIONS:
         if path.exists():
             try:
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, encoding='utf-8') as f:
                     user_config = json.load(f);
                 unknown = set(user_config) - set(DEFAULT_CONFIG);
                 if unknown:

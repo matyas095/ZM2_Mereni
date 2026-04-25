@@ -36,6 +36,9 @@ python3 -m PyInstaller --onedir --noconfirm --clean --strip \
     --exclude-module tkinter --exclude-module _tkinter \
     --exclude-module pandas --exclude-module openpyxl \
     --exclude-module fontTools --exclude-module contourpy --exclude-module kiwisolver \
+    --exclude-module sphinx --exclude-module sphinxcontrib \
+    --exclude-module babel --exclude-module docutils --exclude-module alabaster \
+    --exclude-module jinja2 --exclude-module markupsafe \
     --exclude-module scipy.tests --exclude-module sympy.testing --exclude-module sympy.benchmarks \
     --collect-submodules sympy \
     --collect-submodules scipy \
@@ -60,6 +63,12 @@ rm -rf dist/statistika/_internal/matplotlib 2>/dev/null || true
 rm -rf dist/statistika/_internal/PIL 2>/dev/null || true
 rm -rf dist/statistika/_internal/pillow* 2>/dev/null || true
 rm -rf dist/statistika/_internal/pandas 2>/dev/null || true
+rm -rf dist/statistika/_internal/babel 2>/dev/null || true
+rm -rf dist/statistika/_internal/sphinx* 2>/dev/null || true
+rm -rf dist/statistika/_internal/docutils 2>/dev/null || true
+rm -rf dist/statistika/_internal/alabaster 2>/dev/null || true
+rm -rf dist/statistika/_internal/jinja2 2>/dev/null || true
+rm -rf dist/statistika/_internal/markupsafe* 2>/dev/null || true
 rm -rf dist/statistika/_internal/_tcl_data 2>/dev/null || true
 rm -rf dist/statistika/_internal/_tk_data 2>/dev/null || true
 rm -f dist/statistika/_internal/libBLT* dist/statistika/_internal/libtk* dist/statistika/_internal/libtcl* 2>/dev/null || true

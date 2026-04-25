@@ -58,7 +58,7 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 **Infrastruktura**
 
 - Pre-commit hooky v `.pre-commit-config.yaml` — syntax check + testy před commitem.
-- Coverage enforcement v CI (`--fail-under=70`) — PR neprojde při poklesu pokrytí.
+- Coverage enforcement v CI (`--fail-under=55`) — PR neprojde při poklesu pokrytí.
 - Integration testy v `tests/integration/test_api.py` pro programatické API.
 
 **Vylepšení `aritmeticky_prumer`**

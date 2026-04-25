@@ -567,7 +567,7 @@ jobs:
 
             ### Instalace certifikátu
 
-            Pro odstranění varování Windows/Linux spustíme přiložený skript `install_trust` jako administrátor.
+            Pro odstranění varování SmartScreenu při prvním spuštění `.exe` spustíme jednorázově přiložený skript `install_trust_windows.bat` jako administrátor — naimportuje veřejnou část podpisového certifikátu (`matyas095Gameing_public.crt`) do důvěryhodných kořenových certifikátů. Linuxová a macOS distribuce certifikát nevyžaduje.
           files: |
             statistika-linux/*.tar.gz
             statistika-linux/*.AppImage

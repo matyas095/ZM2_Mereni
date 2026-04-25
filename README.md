@@ -23,20 +23,42 @@ pip install -r requirements.txt
 
 ### 1.2 Binární distribuce
 
-Na stránce [Releases](https://github.com/matyas095/ZM2_Mereni/releases) stáhneme:
+Na stránce [Releases](https://github.com/matyas095/ZM2_Mereni/releases) stáhneme balík odpovídající platformě:
 
-| Balík | Obsah |
-|-------|-------|
-| `statistika_*_linux.tar.gz` / `statistika_*_windows.zip` | Výpočetní metody (průměr, chyba, propagace, konverze, vážený průměr) |
-| `statistika_grafy_*_linux.tar.gz` / `statistika_grafy_*_windows.zip` | Grafové metody (2D/3D grafy, interval, chi-squared) |
+| Balík | Linux | Windows | macOS |
+|-------|-------|---------|-------|
+| **Statistika** (výpočty) | `statistika_*_linux.tar.gz` + `Statistika-*.AppImage` | `statistika_*_windows.zip` | `statistika_*_macos.tar.gz` |
+| **Grafy** (vizualizace) | `statistika_grafy_*_linux.tar.gz` | `statistika_grafy_*_windows.zip` | `statistika_grafy_*_macos.tar.gz` |
 
 ```bash
-# Linux
-tar -xzf statistika_v0.3_linux.tar.gz
-./statistika_v0.3_linux/statistika -h
+# Linux (tar.gz)
+tar -xzf statistika_v0.4_linux.tar.gz
+./statistika_v0.4_linux/statistika -h
+
+# Linux (AppImage — jediný spustitelný soubor)
+chmod +x Statistika-v0.4-x86_64.AppImage
+./Statistika-v0.4-x86_64.AppImage -h
+
+# macOS
+tar -xzf statistika_v0.4_macos.tar.gz
+./statistika_v0.4_macos/statistika -h
 
 # Windows
 .\statistika\statistika.exe -h
+```
+
+### 1.3 Docker
+
+```bash
+# Spuštění z GHCR (data jsou v aktuálním adresáři)
+docker run --rm -v "$PWD:/data" ghcr.io/matyas095/zm2_mereni:latest ap -i mereni.txt
+
+# Konkrétní verze
+docker run --rm -v "$PWD:/data" ghcr.io/matyas095/zm2_mereni:v0.4 reg -i data.txt -x U -y I
+
+# Lokální build z repozitáře
+docker build -t zm2 .
+docker run --rm -v "$PWD:/data" zm2 --list-units
 ```
 
 ## 2 Použití
@@ -71,6 +93,7 @@ Každá metoda má krátký alias pro rychlejší psaní:
 | `neprima_chyba` | `nc` |
 | `vazeny_prumer` | `vp` |
 | `derivace` | `der` |
+| `integrace` | `int` |
 | `regrese` | `reg` |
 | `convert_soubor` | `cs` |
 | `join_tables` | `jt` |
@@ -332,10 +355,10 @@ python3 main.py vazeny_prumer -v "10.2,10.3,10.1" -u "0.1,0.05,0.2" -n "R"
 Výstup:
 ```
 R
-├──Vážený průměr = 10.2714
-├──Nejistota = 0.0436
+├──Vážený průměr = 10.271428571428574
+├──Nejistota = 0.04364357804719848
 ├──Počet měření = 3
-└──Výsledek = 10.2714 ± 0.0436
+└──Výsledek = 10.2714 ± 0.0436436
 ```
 
 | Argument | Popis |
@@ -397,7 +420,28 @@ Výstupní soubor je ve formátu `VELIČINA=data` a ukládá se do adresáře `o
 
 ---
 
-### 5.5 `join_tables`
+### 5.6 `integrace`
+
+Numerická integrace dat kumulativní lichoběžníkovou metodou (`scipy.integrate.cumulative_trapezoid`) — párová metoda k `derivace`. Hodí se např. pro výpočet polohy z rychlosti.
+
+```bash
+python3 main.py integrace -i rychlost.txt
+python3 main.py int -i data.txt -x t -y v --initial 0 -o poloha
+```
+
+| Argument | Popis |
+|----------|-------|
+| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný) |
+| `-x`, `--x-col` | Nezávislá proměnná (výchozí: první sloupec) |
+| `-y`, `--y-col` | Integrovaná veličina (výchozí: druhý sloupec) |
+| `--initial` | Počáteční hodnota integrálu (výchozí: 0) |
+| `-o`, `--output` | Výstupní soubor bez přípony |
+
+Round-trip `derivace → integrace` zachová původní data (s drobnou odchylkou kvůli aproximaci).
+
+---
+
+### 5.7 `join_tables`
 
 Spojení dvou LaTeX tabulek (`.tex`) do jedné. Metoda pracuje i s tabulkami rozdělenými do subtables (např. vygenerovanými metodou `aritmeticky_prumer -lt` nad velkými soubory).
 
@@ -443,7 +487,7 @@ Výstupní soubor `outputs/<name>.tex` obsahuje:
 
 ---
 
-### 5.6 `format_table`
+### 5.8 `format_table`
 
 Úprava existující LaTeX tabulky. Metoda umožňuje převod jednotek, změnu captionu a labelu, přeformátování čísel, rozdělení či sloučení subtables a doplnění statistik z dat.
 
@@ -499,7 +543,7 @@ Přepínač `--append-stats` dopočítá z dat aritmetický průměr a střední
 
 ---
 
-### 5.7 `extract_table`
+### 5.9 `extract_table`
 
 Inverze metody `format_table` — extrahuje data z LaTeX tabulky zpět do formátu `VELIČINA=data`. Užitečné pokud potřebujeme s tabulkou dále pracovat (nový průměr, jiný graf).
 
@@ -516,7 +560,7 @@ python3 main.py extract_table -i mereni.tex -o data --keep-units
 
 ---
 
-### 5.8 `convert_soubor`
+### 5.10 `convert_soubor`
 
 Konverze tabulkového souboru (TSV s hlavičkou a jednotkami) do formátu `PROMĚNNÁ=data`.
 
@@ -711,7 +755,7 @@ powershell -ExecutionPolicy Bypass -File builder\build_statistika_windows.ps1
 powershell -ExecutionPolicy Bypass -File builder\build_grafy_windows.ps1
 
 # Simulace release procesu lokálně
-bash builder/simulate_release.sh v0.3-test
+bash builder/simulate_release.sh v0.4-test
 ```
 
 ## 9 Konvence kódu

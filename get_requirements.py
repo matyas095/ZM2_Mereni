@@ -40,15 +40,22 @@ def generate_requirements():
 
     # 3. Add the "stubborn" standard libs manually to the filter
     stdlib.update(['importlib', 'pkgutil', 'webbrowser', 'tkinter', 'math', 'ast'])
-    manual_ignore = {'logic', 'utils', 'main', 'get_requirements', 'tkinter', 'pkgutil', 'importlib', 'webbrowser'}
+    manual_ignore = {
+        'logic',
+        'utils',
+        'main',
+        'get_requirements',
+        'tkinter',
+        'pkgutil',
+        'importlib',
+        'webbrowser',
+    }
 
     # 4. THE FINAL FILTER:
     final_reqs = [
-        i for i in imports
-        if i not in stdlib
-        and i not in local_folders
-        and i not in local_files
-        and i not in manual_ignore
+        i
+        for i in imports
+        if i not in stdlib and i not in local_folders and i not in local_files and i not in manual_ignore
     ]
 
     with open("requirements.txt", "w") as f:
@@ -56,6 +63,7 @@ def generate_requirements():
             f.write(f"{req}\n")
 
     print(f"Generated requirements.txt with: {', '.join(final_reqs)}")
+
 
 if __name__ == "__main__":
     generate_requirements()

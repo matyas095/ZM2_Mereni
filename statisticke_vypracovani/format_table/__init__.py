@@ -1,1 +1,1 @@
-from .logic import FormatTable;
+from .logic import FormatTable

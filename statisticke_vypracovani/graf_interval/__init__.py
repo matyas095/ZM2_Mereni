@@ -1,1 +1,1 @@
-from .logic import GrafInterval;
+from .logic import GrafInterval

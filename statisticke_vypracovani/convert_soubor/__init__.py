@@ -1,1 +1,1 @@
-from .logic import ConvertSoubor;
+from .logic import ConvertSoubor

@@ -1,1 +1,1 @@
-from .logic import AritmetickyPrumer;
+from .logic import AritmetickyPrumer

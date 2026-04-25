@@ -1,1 +1,1 @@
-from .logic import Regrese;
+from .logic import Regrese

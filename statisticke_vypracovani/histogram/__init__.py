@@ -1,1 +1,1 @@
-from .logic import Histogram;
+from .logic import Histogram

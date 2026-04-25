@@ -1,1 +1,1 @@
-from .logic import Derivace;
+from .logic import Derivace

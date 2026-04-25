@@ -1,1 +1,1 @@
-from .logic import NeprimaChyba;
+from .logic import NeprimaChyba

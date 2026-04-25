@@ -1,74 +1,72 @@
-import numpy as np;
-import matplotlib.pyplot as plt;
-from pathlib import Path;
-from sympy import symbols, lambdify;
-from utils import smart_parse, print_graf_saved;
-from statisticke_vypracovani.base import Method;
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from sympy import symbols, lambdify
+from utils import smart_parse, print_graf_saved
+from statisticke_vypracovani.base import Method
+
 
 class GrafInterval(Method):
-    name = "graf_interval";
-    description = "Graf funkce na zadaném intervalu";
+    name = "graf_interval"
+    description = "Graf funkce na zadaném intervalu"
 
     def validate(self, args) -> None:
         if not getattr(args, 'name', None):
-            raise ValueError("Chybí název grafu (-n)");
+            raise ValueError("Chybí název grafu (-n)")
         if not getattr(args, 'rovnice', None):
-            raise ValueError("Chybí rovnice (-r)");
+            raise ValueError("Chybí rovnice (-r)")
         if "=" not in args.rovnice:
-            raise ValueError("V rovnici chybí oddělovač '='; Formát: 'VELIČINA=VZTAH'");
-        interval = getattr(args, 'interval', None);
+            raise ValueError("V rovnici chybí oddělovač '='; Formát: 'VELIČINA=VZTAH'")
+        interval = getattr(args, 'interval', None)
         if not interval or len(interval) != 2:
-            raise ValueError("Interval musí mít 2 hodnoty: -i POČÁTEK KONEC");
+            raise ValueError("Interval musí mít 2 hodnoty: -i POČÁTEK KONEC")
         if interval[0] >= interval[1]:
-            raise ValueError(f"Neplatný interval [{interval[0]}, {interval[1]}]");
+            raise ValueError(f"Neplatný interval [{interval[0]}, {interval[1]}]")
 
     def get_args_info(self):
         return [
-            {
-                "flags": ["-n", "--name"],
-                "help": "Název grafu",
-                "required": True,
-                "type": str
-            },
+            {"flags": ["-n", "--name"], "help": "Název grafu", "required": True, "type": str},
             {
                 "flags": ["-r", "--rovnice"],
                 "help": "Funkční závislost formát 'VELIČINA=VZTAH'\nNutná aby byla jedno proměnná.",
                 "required": True,
-                "type": str
+                "type": str,
             },
             {
                 "flags": ["-i", "--interval"],
                 "help": "Interval na kterým je vztah. Formát -i 10 100; Interval <10, 100>",
                 "required": True,
                 "nargs": 2,
-                "type": float
-            }
-        ];
+                "type": float,
+            },
+        ]
 
     def run(self, args: object, do_print: bool = True) -> dict:
-        parsed_y, variables, nazev_rce = smart_parse(args.rovnice);
-
-        start_int, end_int = args.interval;
-
-        f = lambdify([symbols(v) for v in variables], parsed_y, 'numpy');
-        x_Range = np.linspace(start_int, end_int, 1000);
+        parsed_y, variables, nazev_rce = smart_parse(args.rovnice)
+        start_int, end_int = args.interval
+        f = lambdify([symbols(v) for v in variables], parsed_y, 'numpy')
+        x_Range = np.linspace(start_int, end_int, 1000)
         y_vals = f(x_Range)
 
-        dir_name = "grafy_metoda_graf";
-        folder_path = Path(dir_name).resolve();
-        folder_path.mkdir(parents=True, exist_ok=True);
+        dir_name = "grafy_metoda_graf"
+        folder_path = Path(dir_name).resolve()
+        folder_path.mkdir(parents=True, exist_ok=True)
+        plt.figure(figsize=(9, 6))
+        from sympy import latex
 
-        plt.figure(figsize=(9, 6));
-        from sympy import latex;
-        plt.plot(x_Range, y_vals, label=r'$' + nazev_rce + ' = ' + latex(parsed_y) + '$');
-        plt.xlabel(variables[0]);
-        plt.ylabel(nazev_rce);
-        plt.title(args.name);
-        plt.grid(alpha=0.3);
-        plt.legend();
-        plt.savefig(f'{folder_path}/{args.name}.svg', format='svg', bbox_inches='tight');
-        plt.show();
+        plt.plot(x_Range, y_vals, label=r'$' + nazev_rce + ' = ' + latex(parsed_y) + '$')
+        plt.xlabel(variables[0])
+        plt.ylabel(nazev_rce)
+        plt.title(args.name)
+        plt.grid(alpha=0.3)
+        plt.legend()
+        plt.savefig(f'{folder_path}/{args.name}.svg', format='svg', bbox_inches='tight')
+        plt.show()
         if do_print:
-            print_graf_saved(args.name, folder_path, f"{nazev_rce}={parsed_y}");
-        plt.close();
-        return {"name": args.name, "path": str(folder_path / f"{args.name}.svg"), "interval": [start_int, end_int]};
+            print_graf_saved(args.name, folder_path, f"{nazev_rce}={parsed_y}")
+        plt.close()
+        return {
+            "name": args.name,
+            "path": str(folder_path / f"{args.name}.svg"),
+            "interval": [start_int, end_int],
+        }

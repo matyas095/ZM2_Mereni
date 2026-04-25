@@ -1,1 +1,1 @@
-from .logic import Graf;
+from .logic import Graf

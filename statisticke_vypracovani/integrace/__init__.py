@@ -1,1 +1,1 @@
-from .logic import Integrace;
+from .logic import Integrace

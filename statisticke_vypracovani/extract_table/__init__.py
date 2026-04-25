@@ -1,1 +1,1 @@
-from .logic import ExtractTable;
+from .logic import ExtractTable

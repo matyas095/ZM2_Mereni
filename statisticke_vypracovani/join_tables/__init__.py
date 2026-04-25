@@ -1,1 +1,1 @@
-from .logic import JoinTables;
+from .logic import JoinTables

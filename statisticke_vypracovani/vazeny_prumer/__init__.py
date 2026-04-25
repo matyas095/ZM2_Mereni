@@ -1,1 +1,1 @@
-from .logic import VazenyPrumer;
+from .logic import VazenyPrumer

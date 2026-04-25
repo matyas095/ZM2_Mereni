@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod;
-from typing import Any;
+from abc import ABC, abstractmethod
+from typing import Any
+
 
 class Method(ABC):
     """Bázová třída pro všechny statistické metody.
@@ -10,16 +11,15 @@ class Method(ABC):
         compute(args)   — čistý výpočet bez I/O (volitelné — pro programatické použití)
         run(args, do_print) — CLI entry point, volá validate → compute → print
     """
-    name: str;
-    description: str;
+
+    name: str
+    description: str
 
     @abstractmethod
-    def get_args_info(self) -> list:
-        ...
+    def get_args_info(self) -> list: ...
 
     @abstractmethod
-    def run(self, args: Any, do_print: bool = True) -> dict:
-        ...
+    def run(self, args: Any, do_print: bool = True) -> dict: ...
 
     def validate(self, args: Any) -> None:
         """Validace vstupů. Výchozí implementace nic nedělá.
@@ -27,10 +27,9 @@ class Method(ABC):
         Přetiž v podtřídě pro konkrétní kontroly.
         """
 
-
     def compute(self, args: Any) -> dict:
         """Čistý výpočet bez I/O — výchozí volá run(..., do_print=False).
 
         Přetiž v podtřídě pro čistší oddělení.
         """
-        return self.run(args, do_print=False);
+        return self.run(args, do_print=False)

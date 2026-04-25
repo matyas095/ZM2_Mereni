@@ -10,7 +10,7 @@ python -m py_compile main.py
 python -m py_compile main_statistika.py
 python -m py_compile utils.py
 
-python -m PyInstaller --onedir --noconfirm --clean --strip `
+python -m PyInstaller --onedir --noconfirm --clean `
     --name statistika --icon builder/app_icon.ico `
     --add-data "statisticke_vypracovani;statisticke_vypracovani" `
     --add-data "objects;objects" `

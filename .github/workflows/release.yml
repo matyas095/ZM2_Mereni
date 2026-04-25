@@ -332,7 +332,7 @@ jobs:
 
       - name: Build
         run: |
-          pyinstaller --onedir --noconfirm --clean --strip `
+          pyinstaller --onedir --noconfirm --clean `
           --icon builder/app_icon.ico --name statistika `
           --add-data "statisticke_vypracovani;statisticke_vypracovani" `
           --add-data "objects;objects" `
@@ -413,7 +413,7 @@ jobs:
 
       - name: Build
         run: |
-          pyinstaller --onedir --noconfirm --clean --strip `
+          pyinstaller --onedir --noconfirm --clean `
           --icon builder/app_icon.ico --name statistika_grafy `
           --add-data "statisticke_vypracovani;statisticke_vypracovani" `
           --add-data "objects;objects" `

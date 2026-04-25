@@ -14,11 +14,13 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 
 **Dokumentace**
 
-- README oddíl 1.4 *Řešení potíží* — diagnostika a postup pro Windows binárku selhávající chybou `LoadLibrary: Invalid access to memory location` na Win 11 24H2+.
+- README oddíl 1.4 *Řešení potíží* — diagnostika a postup pro Windows binárku selhávající chybou `LoadLibrary: Invalid access to memory location` na Win 11 24H2+. Doplněn rozbor obou identifikovaných příčin (Python 3.12 bez `/CETCOMPAT` a PyInstaller `--strip` mažící CET bit z `python313.dll`) i postup nouzové opravy poškozené v0.4 binárky přepsáním `python313.dll` oficiální verzí z MSI instalátoru.
 
 ### Opraveno
 
-- **Windows binárka padala při startu na Windows 11 24H2+ s CPU podporujícím hardware CET** (Intel Tiger Lake+, AMD Zen 3+) chybou `[PYI-xxxx:ERROR] Failed to load Python DLL ... LoadLibrary: Invalid access to memory location.`. Příčinou byla knihovna `python312.dll` z Pythonu 3.12, která nebyla zkompilována s flagem `/CETCOMPAT`; kernel-vynucený User Shadow Stack proces ukončil během inicializace. Build runner přepnut z Pythonu 3.12 na 3.13 — `python313.dll` je s CET kompatibilní. Změna se promítla do workflow `release.yml`, `ci.yml` i do `Dockerfile` (`python:3.12-slim` → `python:3.13-slim`).
+- **Windows binárka padala při startu na Windows 11 24H2+ s CPU podporujícím hardware CET** (Intel Tiger Lake+, AMD Zen 3+) chybou `[PYI-xxxx:ERROR] Failed to load Python DLL ... LoadLibrary: Invalid access to memory location.`. Identifikovány byly dvě nezávislé příčiny, obě bránily korektnímu loadu Python DLL kernel-vynuceným User Shadow Stackem:
+    1. Knihovna `python312.dll` z Pythonu 3.12 nebyla zkompilována s flagem `/CETCOMPAT`. Build runner přepnut z Pythonu 3.12 na 3.13 — oficiální `python313.dll` má `IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT` nastaveno. Změna se promítla do workflow `release.yml`, `ci.yml` i do `Dockerfile` (`python:3.12-slim` → `python:3.13-slim`).
+    2. Windows buildy předávaly PyInstalleru flag `--strip`, který spouští GNU `strip` nad bundlovanými binárkami. Na PE souborech `strip` maže rozšířené DLL characteristics včetně CET bitu, čímž rušil efekt opravy z bodu 1 — i v0.4 binárka s `python313.dll` proto stále padala. Flag `--strip` odstraněn ze všech tří Windows pipeline (`builder/build_statistika_windows.ps1`, `builder/build_grafy_windows.ps1`, `.github/workflows/release.yml` — joby `build-statistika-windows` a `build-grafy-windows`). Linuxové buildy `--strip` zachovávají, je tam korektní použití na ELF.
 
 ## [v0.4] - 2026-04-25
 

@@ -65,12 +65,20 @@ docker run --rm -v "$PWD:/data" zm2 --list-units
 
 #### Windows: `[PYI-xxxx:ERROR] Failed to load Python DLL ... LoadLibrary: Invalid access to memory location.`
 
-Vyskytuje se u binárek `v0.4` a starších na Windows 11 24H2+ (build 26100+) v kombinaci s CPU podporujícím hardware CET (Intel Tiger Lake a novější, AMD Zen 3 a novější). Příčinou je, že knihovna `python312.dll` z Pythonu 3.12 nebyla zkompilována s flagem `/CETCOMPAT`, a kernel-vynucený User Shadow Stack proces ukončí během inicializace.
+Vyskytuje se u binárek `v0.4` a starších na Windows 11 24H2+ (build 26100+) v kombinaci s CPU podporujícím hardware CET (Intel Tiger Lake a novější, AMD Zen 3 a novější). Příčinou je, že přiložená Python DLL (`python312.dll` u verzí postavených na Pythonu 3.12, resp. `python313.dll` u v0.4 přebudované na Pythonu 3.13) nemá v PE hlavičce nastaven příznak `IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT`. Kernel-vynucený User Shadow Stack proces ukončí během `LoadLibrary` voláním této knihovny.
+
+Konkrétně byly identifikovány dvě nezávislé příčiny:
+
+1. **Python 3.12** — oficiální `python312.dll` nebyl zkompilován s flagem `/CETCOMPAT`.
+2. **PyInstaller `--strip` na Windows** — Windows buildy v `release.yml` a v `builder/build_*_windows.ps1` předávaly příznak `--strip`, který spouští GNU `strip` nad bundlovanými binárkami. Strip je určen pro ELF a na Windows PE souborech maže rozšířené DLL characteristics včetně CET bitu z oficiální `python313.dll`. Účinek opravy přechodu na Python 3.13 byl tímto krokem zrušen.
 
 Řešení:
 
-- **Aktualizovat na verzi `v0.5` nebo novější** — buildy jsou produkovány s Pythonem 3.13, který je s CET kompatibilní.
-- Pro starší binárky lze využít distribuci přes Docker (viz oddíl 1.3), případně instalovat ze zdrojového kódu (viz oddíl 1.1).
+- **Aktualizovat na verzi `v0.5` nebo novější** — buildy jsou produkovány s Pythonem 3.13 a bez `--strip` na Windows, takže CET bit v `python313.dll` zůstává zachován.
+- Pro starší binárky (včetně poškozené v0.4 s `python313.dll`) lze:
+    - **Přepsat poškozenou DLL oficiální verzí** — nainstalovat oficiální Python 3.13.x pro Windows a zkopírovat `python313.dll` z `C:\Users\<uživatel>\AppData\Local\Programs\Python\Python313\` přes `…\statistika\_internal\python313.dll`. Oficiální MSI build má `/CETCOMPAT` nastavený a není stripovaný.
+    - Využít distribuci přes Docker (viz oddíl 1.3).
+    - Instalovat ze zdrojového kódu (viz oddíl 1.1).
 
 Diagnostické příkazy v PowerShellu pro ověření, že se jedná o popsaný problém:
 
@@ -78,6 +86,7 @@ Diagnostické příkazy v PowerShellu pro ověření, že se jedná o popsaný p
 [System.Environment]::OSVersion.Version          # Build >= 26100
 Get-CimInstance Win32_Processor | Select Name    # CPU s CET podporou
 Get-MpComputerStatus | Select SmartAppControlState   # Off/Eval (vylučuje SAC)
+dumpbin /headers _internal\python313.dll | findstr /i CET   # zdravá DLL hlásí "CET Compatible"
 ```
 
 #### Linux/macOS: chybějící systémová knihovna při spuštění binárky

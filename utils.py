@@ -5,11 +5,33 @@ import sys
 import os
 import re
 import contextlib
+from decimal import Decimal, ROUND_HALF_UP
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS  # type: ignore
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
+
+
+def round_half_up(value: float, ndigits: int = 0) -> float:
+    """Zaokrouhlí 'půlku nahoru' (od nuly) — školní zaokrouhlování.
+
+    Vestavěný Python `round()` používá bankovní zaokrouhlování (round half to even)
+    a navíc trpí binární reprezentací floatů (např. `33.05` se reálně uloží jako
+    `33.04999…`, takže `round(33.05, 1)` vrací `33.0` místo `33.1`).
+
+    Tento helper převede přes `Decimal(repr(value))` (krátká round-trip reprezentace),
+    takže `33.05` se interpretuje skutečně jako 33.05, a aplikuje `ROUND_HALF_UP`.
+
+    Příklady:
+        round_half_up(33.05, 1)  → 33.1
+        round_half_up(2.5, 0)    → 3.0
+        round_half_up(-2.5, 0)   → -3.0
+    """
+    if not math.isfinite(value):
+        return value
+    quant = Decimal(10) ** -ndigits
+    return float(Decimal(repr(value)).quantize(quant, rounding=ROUND_HALF_UP))
 
 
 def _color_scheme():

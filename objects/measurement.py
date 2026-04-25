@@ -1,7 +1,7 @@
 import math
 from collections.abc import Sequence
 import numpy as np
-from utils import color_print, return_Cislo_Krat_10_Na
+from utils import color_print, return_Cislo_Krat_10_Na, round_half_up
 
 
 class Measurement:
@@ -139,7 +139,7 @@ class Measurement:
         return new
 
     def round_value(self, value: float) -> float:
-        return round(value, self.precision)
+        return round_half_up(value, self.precision)
 
     def format(self) -> str:
         return f"{self.round_value(self.mean)} ± {self.round_value(self.u_c)}"
@@ -152,7 +152,7 @@ class Measurement:
         from objects.units import extract_name_unit, display_unit
 
         _, unit = extract_name_unit(self.name)
-        base = f"{val} ({round(val, p):.{p}f})"
+        base = f"{val} ({round_half_up(val, p):.{p}f})"
         return f"{base} {display_unit(unit)}"
 
     def print_result(self, show_type_b: bool = False, quiet: bool = False) -> None:

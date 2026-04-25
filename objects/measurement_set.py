@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from itertools import zip_longest
-from utils import color_print, locked_open
+from utils import color_print, locked_open, round_half_up
 from objects.measurement import Measurement
 
 
@@ -109,7 +109,7 @@ class MeasurementSet:
         body = []
         for m in self.measurements:
             p = max(m.precision, 1)
-            body.append([f"{round(v, p):.{p}f}".replace(".", _dec_sep()) for v in m.values])
+            body.append([f"{round_half_up(v, p):.{p}f}".replace(".", _dec_sep()) for v in m.values])
         rows = list(zip_longest(*body, fillvalue="-"))
         col_widths = []
         for i in range(len(headers)):
@@ -132,8 +132,8 @@ class MeasurementSet:
 
         for m in self.measurements:
             p = max(m.precision, 1)
-            mean_str = f"{round(m.mean, p):.{p}f}".replace(".", _dec_sep())
-            err_str = f"{round(m.u_c, p):.{p}f}".replace(".", _dec_sep())
+            mean_str = f"{round_half_up(m.mean, p):.{p}f}".replace(".", _dec_sep())
+            err_str = f"{round_half_up(m.u_c, p):.{p}f}".replace(".", _dec_sep())
             var, unit = extract_name_unit(m.name)
             var_clean = var.replace("$", "")
             u_disp = display_unit(unit)

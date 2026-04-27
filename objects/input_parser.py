@@ -150,9 +150,7 @@ class InputParser:
 
         veliciny = cfg.get("veliciny", {})
         if not veliciny:
-            raise ValueError(
-                f"TOML soubor '{file_path}' nema zadnou sekci [veliciny.<nazev>]."
-            )
+            raise ValueError(f"TOML soubor '{file_path}' nema zadnou sekci [veliciny.<nazev>].")
 
         ms = MeasurementSet()
         for name, vinfo in veliciny.items():

@@ -3,7 +3,15 @@ import json
 from sympy import symbols, lambdify, latex
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
-from utils import color_print, return_Cislo_Krat_10_Na, extract_variables, gum_round, parse_composite_unit, pick_display, rescale_simple_unit
+from utils import (
+    color_print,
+    return_Cislo_Krat_10_Na,
+    extract_variables,
+    gum_round,
+    parse_composite_unit,
+    pick_display,
+    rescale_simple_unit,
+)
 from objects.units import extract_name_unit
 from statisticke_vypracovani.aritmeticky_prumer.logic import AritmetickyPrumer, _parse_typ_b
 from statisticke_vypracovani.base import Method
@@ -116,6 +124,7 @@ class NeprimaChyba(Method):
             print(f"├──{color_print.UNDERLINE}Chyba{color_print.END}    = {na_desatou} ({cislo})")
             # Relativni nejistota = |sigma / mean| * 100 % (univerzalni, bez ohledu na jednotku).
             import math as _math
+
             if _math.isfinite(mean_R) and _math.isfinite(cislo) and mean_R != 0:
                 rel_pct = abs(cislo / mean_R) * 100.0
                 if 0.001 <= rel_pct < 1000:
@@ -213,8 +222,7 @@ class NeprimaChyba(Method):
                         )
                 else:
                     raise ValueError(
-                        f"Velicina '{name}': typ_b musi byt cislo nebo "
-                        f"dict {{ a = ..., distribuce = ... }}"
+                        f"Velicina '{name}': typ_b musi byt cislo nebo dict {{ a = ..., distribuce = ... }}"
                     )
                 u_B_per_var[name] = u_B
             else:

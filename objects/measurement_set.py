@@ -132,6 +132,7 @@ class MeasurementSet:
         from objects.units import extract_name_unit, display_unit
 
         import math as _math
+
         for m in self.measurements:
             p = max(m.precision, 1)
             mean_str = f"{round_half_up(m.mean, p):.{p}f}".replace(".", _dec_sep())

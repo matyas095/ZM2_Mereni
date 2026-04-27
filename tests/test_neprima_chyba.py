@@ -40,7 +40,6 @@ class TestNeprimaChyba(unittest.TestCase):
             # unit_str is None when no [unit] annotation is present
             self.assertTrue(unit_str is None or isinstance(unit_str, str))
 
-
     def test_run_toml(self):
         import tempfile
 
@@ -81,6 +80,7 @@ konstanty = { pi = 3.141592653589793 }
             self.assertIn("frac", latex_str)
         finally:
             import os
+
             os.unlink(path)
 
 

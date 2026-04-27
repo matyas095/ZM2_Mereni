@@ -6,34 +6,11 @@ import os
 import re
 import contextlib
 from decimal import Decimal, ROUND_HALF_UP
-from decimal import Decimal, ROUND_HALF_UP
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS  # type: ignore
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
-
-
-def round_half_up(value: float, ndigits: int = 0) -> float:
-    """Zaokrouhli 'pulku nahoru' (od nuly) - skolni zaokrouhlovani.
-
-    Vestaveny Python `round()` pouziva bankovni zaokrouhlovani (round half to even)
-    a navic trpi binarni reprezentaci floatu (napr. `33.05` se realne ulozi jako
-    `33.04999...`, takze `round(33.05, 1)` vraci `33.0` misto `33.1`).
-
-    Tento helper prevede pres `Decimal(repr(value))` (kratka round-trip reprezentace),
-    takze `33.05` se interpretuje skutecne jako 33.05, a aplikuje `ROUND_HALF_UP`.
-
-    Priklady:
-        round_half_up(33.05, 1)  -> 33.1
-        round_half_up(2.5, 0)    -> 3.0
-        round_half_up(-2.5, 0)   -> -3.0
-    """
-    if not math.isfinite(value):
-        return value
-    quant = Decimal(10) ** -ndigits
-    return float(Decimal(repr(float(value))).quantize(quant, rounding=ROUND_HALF_UP))
-
 
 
 def round_half_up(value: float, ndigits: int = 0) -> float:
@@ -131,7 +108,6 @@ def gum_round(value: float, uncertainty: float) -> str:
     if uncertainty == 0:
         return f"({value} ± 0)"
     unc_exp = math.floor(math.log10(abs(uncertainty)))
-    lead = abs(uncertainty) / 10**unc_exp
     # Vzdy 2 sig. cifry na nejistote (dle preference protokolu).
     # GUM §7.2.6 to dovoluje, NIST doporucuje 2 cifry pro vetsi cestnost zobrazene presnosti.
     sig_figs = 2
@@ -156,7 +132,6 @@ def gum_round(value: float, uncertainty: float) -> str:
     return f"({val_norm:.{dp}f} ± {unc_norm:.{dp}f}) * 10^{val_exp}"
 
 
-
 def parse_composite_unit(unit_str: str) -> tuple:
     """Parsuje slozitou jednotku ('g*mm**-3', 'm/s', 'kg/m^3') na (faktor_do_si, si_jednotka).
 
@@ -171,8 +146,15 @@ def parse_composite_unit(unit_str: str) -> tuple:
         parse_composite_unit('km/h')      -> (1/3.6, 'm*s^-1')
     """
     MASS_TO_KG = {
-        'g': 1e-3, 'mg': 1e-6, 'ug': 1e-9, 'μg': 1e-9, 'ng': 1e-12, 'pg': 1e-15,
-        'kg': 1.0, 'Mg': 1e3, 't': 1e3,
+        'g': 1e-3,
+        'mg': 1e-6,
+        'ug': 1e-9,
+        'μg': 1e-9,
+        'ng': 1e-12,
+        'pg': 1e-15,
+        'kg': 1.0,
+        'Mg': 1e3,
+        't': 1e3,
     }
     SPECIAL = {'h': (3600.0, 's'), 'min': (60.0, 's')}
 
@@ -215,8 +197,9 @@ def parse_composite_unit(unit_str: str) -> tuple:
             factor, base_si = SPECIAL[base]
         else:
             from objects.units import parse_unit
+
             factor, base_si = parse_unit(base)
-        total *= factor ** exp
+        total *= factor**exp
         terms.append((base_si, exp))
 
     coalesced = {}
@@ -241,7 +224,6 @@ def parse_composite_unit(unit_str: str) -> tuple:
     return total, '*'.join(parts) if parts else ''
 
 
-
 def rescale_simple_unit(mean: float, sigma: float, unit: str) -> tuple:
     """Pokud je `unit` jednoducha SI base jednotka bez prefixu (napr. 'm', 'g', 's', 'A')
     a sigma je 'nepekny' (< 0.01 nebo >= 1000), prepocte hodnotu i nejistotu na vhodny
@@ -256,13 +238,41 @@ def rescale_simple_unit(mean: float, sigma: float, unit: str) -> tuple:
         rescale_simple_unit(32.3432, 1.1643, 'm')  -> (32.3432, 1.1643, 'm')   (no change)
         rescale_simple_unit(0.05, 5e-7, 's')       -> (5e4, 0.5, 'us')         (here returns 'μs')
     """
-    SIMPLE_BASES = {'m', 'g', 's', 'A', 'K', 'mol', 'cd', 'Hz', 'N', 'Pa',
-                    'J', 'W', 'V', 'F', 'C', 'T', 'Wb', 'lx', 'lm', 'rad'}
+    SIMPLE_BASES = {
+        'm',
+        'g',
+        's',
+        'A',
+        'K',
+        'mol',
+        'cd',
+        'Hz',
+        'N',
+        'Pa',
+        'J',
+        'W',
+        'V',
+        'F',
+        'C',
+        'T',
+        'Wb',
+        'lx',
+        'lm',
+        'rad',
+    }
     # Mapuje "scaling" exponent (jakym 10^k nasobime hodnoty) -> SI prefix.
     # k=3 znamena nasobeni *1000 -> jdeme na 1000x mensi jednotku ('m' jako mili).
     SCALING_TO_PREFIX = {
-        15: 'f', 12: 'p',  9: 'n',  6: 'μ',  3: 'm',
-        -3: 'k', -6: 'M', -9: 'G', -12: 'T', -15: 'P',
+        15: 'f',
+        12: 'p',
+        9: 'n',
+        6: 'μ',
+        3: 'm',
+        -3: 'k',
+        -6: 'M',
+        -9: 'G',
+        -12: 'T',
+        -15: 'P',
     }
 
     if unit not in SIMPLE_BASES:
@@ -294,9 +304,10 @@ def rescale_simple_unit(mean: float, sigma: float, unit: str) -> tuple:
     if scaling == 0 or scaling not in SCALING_TO_PREFIX:
         return mean, sigma, unit
 
-    factor = 10 ** scaling
+    factor = 10**scaling
     new_unit = SCALING_TO_PREFIX[scaling] + unit
     return mean * factor, sigma * factor, new_unit
+
 
 def pick_display(orig_str: str, si_str: str, orig_unit: str, si_unit: str) -> tuple:
     """Vybere lepsi z (orig, si) zobrazeni:
@@ -455,6 +466,7 @@ def r2_score(y_true, y_pred):
 @contextlib.contextmanager
 def locked_open(path, mode="w", encoding="utf-8"):
     """Otevře soubor s exclusive lockem (Linux/Mac fcntl, Windows msvcrt).
+
     Brání závodění při paralelním běhu více metod do stejného outputu.
     """
     with open(path, mode, encoding=encoding) as f:
@@ -462,7 +474,7 @@ def locked_open(path, mode="w", encoding="utf-8"):
             import fcntl
 
             fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        except ImportError:
+        except (ImportError, OSError):
             try:
                 import msvcrt
 

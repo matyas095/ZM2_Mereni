@@ -13,6 +13,7 @@ Statistické zpracování se nachází [zde](https://github.com/matyas095/ZM2_Me
 - [Měření 9.](#měření-9---závislost-odporu-termistoru-na-teplotě)  - 26. 3. 26
 - [Měření 10.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie) - 2. 4. 26
 - [Měření 1.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie)  - 9. 4. 26
+- [Měření 3.](#měření-3---měření-hustot-kapalných-a-pevných-látek) -  23. 4. 26
 
 ## Zápis měření
 
@@ -34,7 +35,10 @@ Všechny výpočty dělány ručně (kalkulátor incident)
 ### Měření 10 - Vzduchová dráha, 2. Newtonův zákon a Zákon o Zachování Mechanické Energie
 - Grafy
 - Výpočty
-- 
+
 ### Měření 1 - Voltampérová charakteristika diod
 - Grafy
 - Výpočty
+
+### Měření 3 - Měření hustot kapalných a pevných látek
+- Výpočty přes [Releases](https://github.com/matyas095/ZM2_Mereni/releases)

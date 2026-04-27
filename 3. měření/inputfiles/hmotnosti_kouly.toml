@@ -1,0 +1,11 @@
+[veliciny.M_1]
+unit = "g"
+hodnoty = [35.6341, 35.7142, 35.7142]   # samotný pyknometr
+
+[veliciny.M_2]
+unit = "g"
+hodnoty = [25.6338, 25.6339, 25.6338]   # líh
+
+[veliciny.M_3]
+unit = "g"
+hodnoty = [25.588, 25.59, 25.589]   # voda

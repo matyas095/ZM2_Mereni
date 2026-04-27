@@ -1,0 +1,16 @@
+[veliciny.M_1]
+unit = "g"
+hodnoty = [24.6567, 24.6566, 24.6568]   # samotný pyknometr
+
+[veliciny.M_2]
+unit = "g"
+hodnoty = [44.96, 44.97, 44.99, 44.99]   # líh
+
+[veliciny.M_3]
+unit = "g"
+hodnoty = [49.68, 49.68, 49.68, 49.68]   # voda
+
+[funkce.rho_vztlak]
+vzorec = "(M_2 - M_1) / (M_3 - M_1) * (rho_v - sigma) + sigma"
+unit = "g*cm**-3"
+konstanty = { rho_v = 0.9973, sigma = 0.00119 }            # hustota vody při 24°C + hustota vzduchu

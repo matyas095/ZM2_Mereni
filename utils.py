@@ -6,11 +6,34 @@ import os
 import re
 import contextlib
 from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS  # type: ignore
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
+
+
+def round_half_up(value: float, ndigits: int = 0) -> float:
+    """Zaokrouhli 'pulku nahoru' (od nuly) - skolni zaokrouhlovani.
+
+    Vestaveny Python `round()` pouziva bankovni zaokrouhlovani (round half to even)
+    a navic trpi binarni reprezentaci floatu (napr. `33.05` se realne ulozi jako
+    `33.04999...`, takze `round(33.05, 1)` vraci `33.0` misto `33.1`).
+
+    Tento helper prevede pres `Decimal(repr(value))` (kratka round-trip reprezentace),
+    takze `33.05` se interpretuje skutecne jako 33.05, a aplikuje `ROUND_HALF_UP`.
+
+    Priklady:
+        round_half_up(33.05, 1)  -> 33.1
+        round_half_up(2.5, 0)    -> 3.0
+        round_half_up(-2.5, 0)   -> -3.0
+    """
+    if not math.isfinite(value):
+        return value
+    quant = Decimal(10) ** -ndigits
+    return float(Decimal(repr(value)).quantize(quant, rounding=ROUND_HALF_UP))
+
 
 
 def round_half_up(value: float, ndigits: int = 0) -> float:
@@ -89,9 +112,145 @@ def try_convert(s):
 
 
 def return_Cislo_Krat_10_Na(x):
+    # Bezpecne pro x=0 a non-finite (inf/-inf/nan), kde by log10 selhal.
+    if x == 0 or not math.isfinite(x):
+        return f"{x}"
     exponent = math.floor(math.log10(abs(x)))
     zaklad = x / 10**exponent
     return f"{zaklad:.3f} * 10^{exponent}"
+
+
+def gum_round(value: float, uncertainty: float) -> str:
+    """Vrati (hodnota ± nejistota) zaokrouhlene dle GUM 7.2.6:
+    - nejistota na 2 sig. cifry pokud jeji vedouci cislice je 1 nebo 2, jinak na 1 sig. cifru,
+    - hodnota zaokrouhlena na stejne desetinne misto jako nejistota,
+    - obe vyjadrene se sdilenym exponentem (pokud je vubec potreba).
+    """
+    if not math.isfinite(value) or not math.isfinite(uncertainty):
+        return f"({value} ± {uncertainty})"
+    if uncertainty == 0:
+        return f"({value} ± 0)"
+    unc_exp = math.floor(math.log10(abs(uncertainty)))
+    lead = abs(uncertainty) / 10**unc_exp
+    sig_figs = 2 if lead < 3 else 1
+    round_to_pos = unc_exp - (sig_figs - 1)
+    decimals = -round_to_pos
+    val_r = round_half_up(value, decimals)
+    unc_r = round_half_up(uncertainty, decimals)
+    if val_r == 0:
+        val_exp = round_to_pos
+    else:
+        val_exp = math.floor(math.log10(abs(val_r)))
+    if -2 <= val_exp <= 4:
+        dp = max(0, decimals)
+        if dp == 0:
+            return f"({int(val_r)} ± {int(unc_r)})"
+        return f"({val_r:.{dp}f} ± {unc_r:.{dp}f})"
+    val_norm = val_r / 10**val_exp
+    unc_norm = unc_r / 10**val_exp
+    dp = max(0, val_exp - round_to_pos)
+    return f"({val_norm:.{dp}f} ± {unc_norm:.{dp}f}) * 10^{val_exp}"
+
+
+
+def parse_composite_unit(unit_str: str) -> tuple:
+    """Parsuje slozitou jednotku ('g*mm**-3', 'm/s', 'kg/m^3') na (faktor_do_si, si_jednotka).
+
+    SI base units: kg (hmotnost), m (delka), s (cas), A, K, mol, cd, atd.
+    Hmotnostni jednotky se prevadi na kg (oproti `objects.units.parse_unit`,
+    ktere pouziva `g` jako base).
+
+    Priklady:
+        parse_composite_unit('g*mm**-3')  -> (1e6, 'kg*m^-3')
+        parse_composite_unit('g/cm**3')   -> (1e3, 'kg*m^-3')
+        parse_composite_unit('m/s')       -> (1.0, 'm*s^-1')
+        parse_composite_unit('km/h')      -> (1/3.6, 'm*s^-1')
+    """
+    MASS_TO_KG = {
+        'g': 1e-3, 'mg': 1e-6, 'ug': 1e-9, 'μg': 1e-9, 'ng': 1e-12, 'pg': 1e-15,
+        'kg': 1.0, 'Mg': 1e3, 't': 1e3,
+    }
+    SPECIAL = {'h': (3600.0, 's'), 'min': (60.0, 's')}
+
+    s = unit_str.strip().replace('^', '**')
+    if '/' in s:
+        head, *tail = s.split('/')
+        s = head
+        for piece in tail:
+            for tok in re.split(r'(?<!\*)\*(?!\*)', piece):
+                tok = tok.strip()
+                if not tok:
+                    continue
+                if '**' in tok:
+                    b, e = tok.split('**', 1)
+                    s += f'*{b.strip()}**(-({e.strip()}))'
+                else:
+                    s += f'*{tok}**-1'
+
+    tokens = re.split(r'(?<!\*)\*(?!\*)', s)
+    total = 1.0
+    terms = []
+    for token in tokens:
+        token = token.strip()
+        if not token:
+            continue
+        if '**' in token:
+            base, exp_str = token.split('**', 1)
+            base = base.strip()
+            try:
+                exp = eval(exp_str.strip(), {'__builtins__': {}}, {})
+            except Exception:
+                exp = float(exp_str.strip().lstrip('(').rstrip(')'))
+            exp = float(exp)
+        else:
+            base = token
+            exp = 1.0
+        if base in MASS_TO_KG:
+            factor, base_si = MASS_TO_KG[base], 'kg'
+        elif base in SPECIAL:
+            factor, base_si = SPECIAL[base]
+        else:
+            from objects.units import parse_unit
+            factor, base_si = parse_unit(base)
+        total *= factor ** exp
+        terms.append((base_si, exp))
+
+    coalesced = {}
+    order = []
+    for b, e in terms:
+        if b in coalesced:
+            coalesced[b] += e
+        else:
+            coalesced[b] = e
+            order.append(b)
+    parts = []
+    for b in order:
+        e = coalesced[b]
+        if e == 0:
+            continue
+        if e == 1:
+            parts.append(b)
+        elif float(e).is_integer():
+            parts.append(f'{b}^{int(e)}')
+        else:
+            parts.append(f'{b}^{e}')
+    return total, '*'.join(parts) if parts else ''
+
+
+def pick_display(orig_str: str, si_str: str, orig_unit: str, si_unit: str) -> tuple:
+    """Vybere lepsi z (orig, si) zobrazeni:
+    - SI forma se pouzije pouze pokud splnuje OBE podminky:
+      bez `* 10^` a maximalne 2 desetinna mista.
+    - Jinak zustava puvodni jednotka (i kdyz orig ma 10^ nebo vic des. mist).
+    Vraci (zvolena_forma_str, zvolena_jednotka_str).
+    """
+    no_power_si = '* 10^' not in si_str
+    decimals_si = 0
+    for m in re.finditer(r'-?\d+\.(\d+)', si_str):
+        decimals_si = max(decimals_si, len(m.group(1)))
+    if no_power_si and decimals_si <= 2:
+        return si_str, si_unit
+    return orig_str, orig_unit
 
 
 def extract_variables(formula_str, toIgnore=None):

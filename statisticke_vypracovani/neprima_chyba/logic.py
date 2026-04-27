@@ -1,9 +1,10 @@
 from typing import Any
 import json
-from sympy import symbols, lambdify
+from sympy import symbols, lambdify, latex
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
-from utils import color_print, return_Cislo_Krat_10_Na, extract_variables
+from utils import color_print, return_Cislo_Krat_10_Na, extract_variables, gum_round, parse_composite_unit, pick_display
+from objects.units import extract_name_unit
 from statisticke_vypracovani.aritmeticky_prumer.logic import AritmetickyPrumer, _parse_typ_b
 from statisticke_vypracovani.base import Method
 from objects.input_parser import InputParser
@@ -54,7 +55,8 @@ class NeprimaChyba(Method):
         resulte = []
         if not aritmety:
             aritmety = aritm.run(data["ELEMENTY"], False)
-        for name_rce, v in data["FUNKCE"].items():
+        for full_name_rce, v in data["FUNKCE"].items():
+            name_rce, unit_str = extract_name_unit(full_name_rce)
             rce = v
             local_const_dict = v.get("FUNC_KONSTANTY", {}) if isinstance(v, dict) else {}
             try:
@@ -81,9 +83,11 @@ class NeprimaChyba(Method):
 
             sym_map = {name: symbols(name) for name in variables}
             y = parse_expr(rce, local_dict=sym_map)  # type: ignore
+            latex_str = latex(y)  # LaTeX zdroj pro vložení do protokolu
             derivatives = [y.diff(x) for x in sym_map]
             variablesNEW = variables + list(local_const_dict.keys())
             f = lambdify(variablesNEW, derivatives, 'numpy')
+            f_val = lambdify(variablesNEW, y, 'numpy')  # samotná funkce — pro střední hodnotu
             chyby = list(aritmety.keys())
             sorted_keys = sorted(aritmety.keys())
             test = (
@@ -97,14 +101,128 @@ class NeprimaChyba(Method):
                 clean_results = np.asarray([float(x) for x in f(*toEval)], dtype=np.float64)
                 ch_arr = np.asarray(ch, dtype=np.float64)
                 sig_R = float(np.sqrt(np.sum((clean_results * ch_arr) ** 2)))
-                resulte.append((name_rce, sig_R, return_Cislo_Krat_10_Na(sig_R)))
+                mean_R = float(np.asarray(f_val(*toEval), dtype=np.float64))
+                resulte.append((name_rce, sig_R, return_Cislo_Krat_10_Na(sig_R), mean_R, latex_str, unit_str))
 
-        for k, cislo, na_desatou in resulte:
+        for k, cislo, na_desatou, mean_R, latex_str, unit_str in resulte:
             print(color_print.BOLD + k + color_print.END)
-            print(f"└──{color_print.UNDERLINE}Chyba{color_print.END} = {na_desatou} ({cislo})")
+            print(f"├──{color_print.UNDERLINE}LaTeX{color_print.END}    = ${k} = {latex_str}$")
+            print(
+                f"├──{color_print.UNDERLINE}Hodnota{color_print.END}  = "
+                f"{return_Cislo_Krat_10_Na(mean_R)} ({mean_R})"
+            )
+            print(f"├──{color_print.UNDERLINE}Chyba{color_print.END}    = {na_desatou} ({cislo})")
+            orig_disp = gum_round(mean_R, cislo)
+            if unit_str:
+                try:
+                    factor, si_unit = parse_composite_unit(unit_str)
+                    if factor != 1.0:
+                        si_disp = gum_round(mean_R * factor, cislo * factor)
+                        chosen, chosen_unit = pick_display(orig_disp, si_disp, unit_str, si_unit)
+                    else:
+                        chosen, chosen_unit = orig_disp, unit_str
+                except Exception:
+                    chosen, chosen_unit = orig_disp, unit_str
+                print(f"└──{color_print.UNDERLINE}Výsledek{color_print.END} = {chosen} {chosen_unit}")
+            else:
+                print(f"└──{color_print.UNDERLINE}Výsledek{color_print.END} = {orig_disp}")
             print("-" * 100)
 
         return resulte
+
+    def _toml_input(self, args):
+        """Parsuje TOML soubor — alternativa k indentovanemu .txt formatu.
+
+        Ocekavana struktura:
+            [veliciny.<nazev>]
+            unit = "<jednotka>"      # volitelne, nepouziva se pri propagaci
+            hodnoty = [<float>, ...]
+            typ_b = <float>                         # primy u_B
+            typ_b = { a = <float>, distribuce = "rovnomerne" | "trojuhelnikove" | "normalni" }
+
+            [funkce.<nazev>]
+            vzorec = "<vyraz>"
+            unit = "<jednotka>"      # napr. "g*mm**-3"; aktivuje SI prevod
+            konstanty = { <jmeno> = <float>, ... }   # volitelne (vc. pi)
+        """
+        try:
+            import tomllib
+        except ImportError:
+            import tomli as tomllib  # Python 3.10 fallback
+        import math
+
+        with open(args.input, "rb") as f:
+            cfg = tomllib.load(f)
+
+        veliciny = cfg.get("veliciny", {})
+        funkce_cfg = cfg.get("funkce", {})
+        if not veliciny:
+            raise ValueError("TOML musi obsahovat alespon jednu sekci [veliciny.<nazev>]")
+        if not funkce_cfg:
+            raise ValueError("TOML musi obsahovat alespon jednu sekci [funkce.<nazev>]")
+
+        elementy = {}
+        aritmety = {}
+        has_type_b = False
+
+        for name, vinfo in veliciny.items():
+            values = vinfo.get("hodnoty")
+            if values is None:
+                raise ValueError(f"Velicina '{name}' nema klic 'hodnoty'")
+            elementy[name] = list(values)
+
+            tb = vinfo.get("typ_b")
+            if tb is not None:
+                has_type_b = True
+                if isinstance(tb, (int, float)):
+                    u_B = float(tb)
+                elif isinstance(tb, dict):
+                    a = float(tb.get("a", 0.0))
+                    dist = str(tb.get("distribuce", "rovnomerne")).strip()
+                    if dist == "rovnomerne":
+                        u_B = a / math.sqrt(3)
+                    elif dist == "trojuhelnikove":
+                        u_B = a / math.sqrt(6)
+                    elif dist == "normalni":
+                        u_B = a / 2.0
+                    else:
+                        raise ValueError(
+                            f"Velicina '{name}': nezname rozlozeni '{dist}'. "
+                            f"Pouzij 'rovnomerne', 'trojuhelnikove' nebo 'normalni'."
+                        )
+                else:
+                    raise ValueError(
+                        f"Velicina '{name}': typ_b musi byt cislo nebo "
+                        f"dict {{ a = ..., distribuce = ... }}"
+                    )
+
+                n = len(values)
+                mean = sum(values) / n if n else 0.0
+                if n > 1:
+                    var = sum((x - mean) ** 2 for x in values) / (n * (n - 1))
+                    u_A = math.sqrt(var)
+                else:
+                    u_A = 0.0
+                u_c = math.sqrt(u_A**2 + u_B**2)
+                aritmety[name] = [mean, u_c]
+
+        funkce = {}
+        for fname, finfo in funkce_cfg.items():
+            formula = finfo.get("vzorec")
+            if formula is None:
+                raise ValueError(f"Funkce '{fname}' nema klic 'vzorec'")
+            unit = finfo.get("unit")
+            key = f"{fname} [{unit}]" if unit else fname
+            body = {"__value__": formula}
+            consts = finfo.get("konstanty")
+            if consts:
+                body["FUNC_KONSTANTY"] = dict(consts)
+            funkce[key] = body
+
+        data = {"ELEMENTY": elementy, "FUNKCE": funkce}
+        if has_type_b:
+            return self._derivace(data, aritmety)
+        return self._derivace(data)
 
     def _xlsxExtension(self, args):
         if not args.rovnice:
@@ -154,6 +272,8 @@ class NeprimaChyba(Method):
         match args.input:
             case name if name.endswith(".xlsx"):
                 return self._xlsxExtension(args)
+            case name if name.endswith(".toml"):
+                return self._toml_input(args)
             case _:
                 if getattr(args, 'typ_b', None):
                     return self._txt_with_typ_b(args)

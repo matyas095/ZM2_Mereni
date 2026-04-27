@@ -12,11 +12,42 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - AppImage pro Linux — jediný spustitelný soubor `Statistika-*.AppImage`, není třeba rozbalovat.
 - macOS build — nové buildy `statistika_*_macos.tar.gz` a `statistika_grafy_*_macos.tar.gz` (PyInstaller na `macos-latest`).
 
+**Vylepšení `neprima_chyba`**
+
+- Nový vstupní formát `.toml` jako alternativa k indentovanému `.txt` (sekce `[veliciny.<nazev>]` a `[funkce.<nazev>]`, inline tabulka pro `typ_b`). Imunní vůči pasti desetinné/separátorové čárky a indentačním chybám, které trápily `.txt` parser. Stávající `.txt` a `.xlsx` formáty zachovány.
+- Anotace `[jednotka]` na klíčích v `FUNKCE` (např. `u [g*mm**-3] = m/V`) — nástroj uloží jednotku, pokusí se ji převést na základní SI jednotky (gram → kg, mm → m, …) a v řádku `Výsledek` zobrazí převedenou formu, pokud splňuje pravidlo „bez `× 10^N` a nejvýš 2 desetinná místa". Hmotnostní jednotky se převádí na `kg` (v rozporu s `objects/units.parse_unit`, který používá `g` jako base).
+- Nové výstupní řádky pro každou funkci: `LaTeX` (zdrojový tvar přes `sympy.latex`), `Hodnota` (střední hodnota), `Výsledek` (`(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6).
+- Návratová hodnota metody rozšířena z 5-tice na 6-tici `(name, sigma, formatted_sigma, mean, latex_str, unit_str)`. Tester aktualizován.
+
+**Pomocné funkce v `utils.py`**
+
+- `round_half_up(value, ndigits)` — školní zaokrouhlování (round half away from zero) přes `Decimal(repr(value)).quantize(..., ROUND_HALF_UP)`. Imunní vůči binární reprezentaci floatů (např. `33.05` se nyní zaokrouhlí na `33.1` namísto `33.0`).
+- `gum_round(value, uncertainty)` — vrací `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6 se sdíleným exponentem; používá `round_half_up` interně. Pravidlo plain/scientific: bez `× 10^N` v rozsahu `10⁻² ≤ |val| ≤ 10⁴`.
+- `parse_composite_unit(unit_str)` — parsuje složené jednotky `g*mm**-3`, `g/cm^3`, `m/s` a vrací `(faktor_do_si, si_jednotka)`. Hmotnost převádí na `kg`.
+- `pick_display(orig, si, orig_unit, si_unit)` — vybere lepší z dvou zaokrouhlených zobrazení podle pravidla výše. SI forma se použije pouze pokud splňuje obě podmínky.
+
+**Zaokrouhlování ve výstupu**
+
+- `objects/measurement.py:142, 155` (`round_value`, `_fmt`) a `objects/measurement_set.py:112, 135–136` (LaTeX tabulka, caption stats) — všechny `round()` volání nahrazeny `round_half_up()`. Důsledek: hodnoty jako `33.05` se v konzolovém i LaTeX výstupu zobrazí jako `33.1`, ne `33.0`.
+
+**CI/CD**
+
+- Pin `ruff==0.15.12` a `mypy==1.20.2` v `.github/workflows/ci.yml`, aby verze odpovídaly `.pre-commit-config.yaml` a nedošlo k tichému driftu formátování.
+- Bump GitHub Actions na verze podporující Node 24 (`actions/checkout@v5`, `actions/setup-python@v6`, `actions/upload-artifact@v6`, `actions/download-artifact@v7`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`, `docker/build-push-action@v7`). Node 20 je v GitHub Actions deprecated od června 2026.
+
 **Dokumentace**
 
 - README oddíl 1.4 *Řešení potíží* — diagnostika a postup pro Windows binárku selhávající chybou `LoadLibrary: Invalid access to memory location` na Win 11 24H2+. Doplněn rozbor obou identifikovaných příčin (Python 3.12 bez `/CETCOMPAT` a PyInstaller `--strip` mažící CET bit z `python313.dll`) i postup nouzové opravy poškozené v0.4 binárky přepsáním `python313.dll` oficiální verzí z MSI instalátoru.
+- README oddíl 5.2 *`neprima_chyba`* přepsán — popis nového čtyřřádkového výstupu (`LaTeX`/`Hodnota`/`Chyba`/`Výsledek`), anotace `[jednotka]`, automatický SI převod, TOML formát.
 
 ### Opraveno
+
+- **Docker workflow padal s `tag is needed when pushing to registry`** při push tagu `vX.Y` (např. `v0.4`), protože `docker/metadata-action` měl jen `type=semver` vzory, které vyžadují strict semver `vX.Y.Z`. Doplněn `type=ref,event=tag`, který použije surový git tag jako docker tag — funguje i pro `vX.Y` konvenci, semver vzory zachovány pro budoucí přechod na `vX.Y.Z`.
+- **`utils.return_Cislo_Krat_10_Na(0)` padal na `ValueError: math domain error`** (volá `math.log10(0)`). Přidána ochrana pro `x == 0` a non-finite (`inf`, `-inf`, `nan`) — vrátí `str(x)` místo crashe. Symptomatické u `nc` runs, kde nebyla zadaná žádná nejistota — `sig_R` vyšlo `0` a celý běh skončil tracebackem místo zobrazení nuly.
+- **`deploy.sh` selhával na Windows Git Bash s `bash: python3: command not found`** — skript hardcodoval `python3`, který na Windows neexistuje (jen `python` nebo `py`). Přidána funkce `detect_python` zkoušející `python3 → python → py -3`. Zároveň opraven syntax-check loop, který kvůli pre-existující chybě v `if [ $? -eq 0 ]` po `for` smyčce maskoval chyby — nahrazeno akumulátorem `SYNTAX_OK=1`.
+- **`ruff format --check`** v CI selhával na 56 souborech, které nikdy neprošly formaterem v0.4. Strom normalizován pomocí pinned `ruff==0.15.12`, samotná akce vrací green.
+
+#### Původní oprava CET / `--strip`
 
 - **Windows binárka padala při startu na Windows 11 24H2+ s CPU podporujícím hardware CET** (Intel Tiger Lake+, AMD Zen 3+) chybou `[PYI-xxxx:ERROR] Failed to load Python DLL ... LoadLibrary: Invalid access to memory location.`. Identifikovány byly dvě nezávislé příčiny, obě bránily korektnímu loadu Python DLL kernel-vynuceným User Shadow Stackem:
     1. Knihovna `python312.dll` z Pythonu 3.12 nebyla zkompilována s flagem `/CETCOMPAT`. Build runner přepnut z Pythonu 3.12 na 3.13 — oficiální `python313.dll` má `IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT` nastaveno. Změna se promítla do workflow `release.yml`, `ci.yml` i do `Dockerfile` (`python:3.12-slim` → `python:3.13-slim`).

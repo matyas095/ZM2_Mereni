@@ -343,35 +343,94 @@ Výpočet nepřímé chyby měření propagací přes parciální derivace. Parc
 # Pouze typ A
 python3 main.py neprima_chyba -i cesta/k/souboru.txt
 
-# S nejistotou typu B
+# S nejistotou typu B (JSON forma — přímá hodnota u_B)
 python3 main.py neprima_chyba -i cesta/k/souboru.txt --typ-b '{"t": 0.5, "U": 1}'
 
 # Vstup ve formátu .xlsx
 python3 main.py neprima_chyba -i data.xlsx -r "R=U/I"
 python3 main.py neprima_chyba -i data.xlsx -r "R=U/I" -k '{"C": 0.000000047}'
+
+# Vstup ve formátu .toml (viz níže)
+python3 main.py neprima_chyba -i mereni.toml
 ```
 
-Vstupní formát souboru `.txt` (indentovaný blokový zápis):
+#### Výstup
+
+Pro každou funkci v sekci `FUNKCE` vypíšeme čtyři řádky:
+
+```
+u
+├──LaTeX    = $u = \frac{m}{V}$
+├──Hodnota  = 2.750 * 10^-3 (0.002749883…)
+├──Chyba    = 6.857 * 10^-6 (6.856844…)
+└──Výsledek = (2750 ± 7) kg*m^-3
+```
+
+- **`LaTeX`** — zdrojový tvar funkce ve formátu LaTeX (přes `sympy.latex`), připravený k vložení do protokolu.
+- **`Hodnota`** — střední hodnota funkce (vyhodnocená v aritmetických průměrech vstupů).
+- **`Chyba`** — propagovaná nejistota dle GUM `σ_w = √(Σᵢ (∂w/∂xᵢ · σ_xᵢ)²)`.
+- **`Výsledek`** — `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6 (nejistota na 1 sig. cifru, pokud její vedoucí číslice je ≥ 3, jinak na 2 sig. cifry; hodnota na stejné desetinné místo). Pokud má funkce v sekci `FUNKCE` anotaci `[jednotka]`, nástroj automaticky převede na základní SI jednotky (např. `g·mm⁻³ → kg·m⁻³`), pokud převedená forma odstraní `× 10^N` a má nejvýše 2 desetinná místa.
+
+#### Vstupní formát `.txt` (indentovaný blokový zápis)
+
 ```
 ELEMENTY
     t=0, 600, 1200, 1800
     U=300, 297, 291, 287
 
 FUNKCE
-    R=t / (C * ln(U_0 / U))
+    R [Ω]=t / (C * ln(U_0 / U))
         FUNC_KONSTANTY
             U_0=300
             C=0.000000047
 ```
 
+Pravidla:
+
+- Indentace přesně 4 mezery na úroveň (žádné taby — parser hlásí `KeyError: -7`, pokud najde 1 mezeru nebo tab).
+- Hodnoty oddělujeme čárkou; jako desetinný oddělovač používáme tečku (čárka `,` je oddělovač hodnot, desetinná čárka by silně rozbila parser).
+- Anotace `[jednotka]` u klíče v `FUNKCE` (např. `R [Ω]`, `u [g*mm**-3]`) aktivuje výpočet `Výsledek` v dané jednotce a případně automatický převod na SI.
+- Konstanty (vč. `pi`) se deklarují v `FUNC_KONSTANTY`. SymPy rezervovaná jména (`pi`, `E`, `I`, `oo`, …) jako vstupní proměnné v `ELEMENTY` nejsou povolena, použij např. `I_c` místo `I`.
+
+#### Vstupní formát `.toml` (alternativa od `[Unreleased]`)
+
+Pro odstranění pastí indentace a desetinné/separátorové čárky podporujeme i TOML:
+
+```toml
+[veliciny.m]
+unit = "g"
+hodnoty = [25.6338, 25.6339, 25.6338]
+typ_b = 0.001                                       # přímý u_B v g
+
+[veliciny.d]
+unit = "mm"
+hodnoty = [33.05, 33.00, 32.90]
+typ_b = { a = 0.05, distribuce = "rovnomerne" }     # u_B = 0.05/√3
+
+[funkce.u]
+vzorec = "m / (pi*d**3/6)"
+unit = "g*mm**-3"
+konstanty = { pi = 3.141592653589793 }
+```
+
+Nástroj rozpozná TOML podle přípony `.toml`. TOML formát:
+
+- `typ_b` lze zadat buď přímou hodnotou (`typ_b = 0.001`), nebo jako tabulku s polovinou intervalu a rozložením (`typ_b = { a = 0.05, distribuce = "rovnomerne" }`).
+- Klíč `unit` u `veliciny` je informativní, klíč `unit` u `funkce` aktivuje SI převod ve `Výsledek` řádku.
+- Konstanty se deklarují přímo v inline tabulce `konstanty`.
+
 Nástroj podporuje i vstup ve formátu `.xlsx` (skrze knihovnu `pandas`).
 
 | Argument | Popis |
 |----------|-------|
-| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný) |
-| `-r`, `--rovnice` | Rovnice ve formátu `VELIČINA=VZTAH` |
-| `-k`, `--konstanty` | Konstanty jako JSON dict |
-| `-tb`, `--typ-b` | Nejistota typu B jako JSON (stejný formát jako u aritmeticky_prumer) |
+| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný); rozpoznává `.txt`, `.xlsx`, `.toml` |
+| `-r`, `--rovnice` | Rovnice ve formátu `VELIČINA=VZTAH` (povinný pro `.xlsx`) |
+| `-k`, `--konstanty` | Konstanty jako JSON dict (vně vstupního souboru) |
+| `-tb`, `--typ-b` | Nejistota typu B jako JSON nebo `KEY=hodnota[:rozlozeni]` (stejný formát jako u `aritmeticky_prumer`) |
+
+#### Programatické API
+
+`zm2.neprima_chyba(...)` vrací seznam 6-tic `(name, sigma, formatted_sigma, mean, latex_str, unit_str)`, jednu položku na každou funkci v sekci `FUNKCE`. Pole `unit_str` je `None`, pokud daná funkce nemá anotaci `[jednotka]`.
 
 ---
 

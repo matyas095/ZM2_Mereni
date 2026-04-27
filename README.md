@@ -167,6 +167,32 @@ Globální přepínače jsou dostupné pro každou metodu:
 | `-q`, `--quiet` | Minimální výstup (bez dekorací, pro scripty) |
 | `--output-format json` | JSON výstup |
 
+### 2.3 Vstupní formáty
+
+Všechny metody přijímající soubor (`-i`) automaticky rozpoznávají příponu:
+
+| Přípona | Formát | Kdo používá |
+|---------|--------|-------------|
+| `.txt` | `VELIČINA=v1,v2,…` (nebo CASSY auto-detekce) | všechny metody |
+| `.xlsx` | Excel s hlavičkou a sloupci | `ap`, `nc`, `regrese`, `derivace`, `graf`, … |
+| `.toml` | strukturovaný — `[veliciny.<jméno>]` sekce s `hodnoty`, volitelně `unit` a `typ_b` | `ap`, `regrese`, `derivace`, `graf`, `histogram`, `integrace`, `nc` |
+
+TOML formát zbavuje uživatele dvou pastí, které trápí `.txt` parser: záměny desetinné čárky (`,`) a oddělovače hodnot (`,`), a chyb v indentaci. Schema:
+
+```toml
+[veliciny.U]
+unit = "V"                          # volitelné — přidá se do názvu jako "U [V]"
+hodnoty = [1.20, 1.21, 1.19]
+typ_b = 0.01                        # přímý u_B v deklarované jednotce
+
+[veliciny.I]
+unit = "A"
+hodnoty = [0.50, 0.51, 0.49]
+typ_b = { a = 0.005, distribuce = "rovnomerne" }   # polovina intervalu + rozdělení
+```
+
+Pro `nc` (nepřímou chybu) je TOML schéma rozšířené o sekce `[funkce.<jméno>]` s formulemi a konstantami — viz oddíl 5.2.
+
 ## 3 Konfigurace
 
 Pro výchozí hodnoty vytvoříme soubor `.zm2rc` v aktuálním adresáři, případně v `~/.zm2rc`:
@@ -292,7 +318,8 @@ Výstup bez typu B:
 ```
 VELIČINA
 ├──Aritmetický průměr = ČÍSLO
-└──Chyba aritmetického průměru = ČÍSLO
+├──Chyba aritmetického průměru = ČÍSLO
+└──Relativní nejistota = X.X %
 ```
 
 Výstup s typem B:
@@ -302,8 +329,11 @@ VELIČINA
 ├──Nejistota typu A = ČÍSLO
 ├──Nejistota typu B = ČÍSLO
 ├──Kombinovaná nejistota = ČÍSLO
-└──Rozšířená nejistota (k=2) = ČÍSLO
+├──Rozšířená nejistota (k=2) = ČÍSLO
+└──Relativní nejistota = X.X %
 ```
+
+Řádek `Relativní nejistota` (`δ = σ/|μ| × 100 %`) se vypisuje vždy. Když je k dispozici typ B, používá `u_c`; jinak `u_A`.
 
 | Argument | Popis |
 |----------|-------|
@@ -319,6 +349,7 @@ VELIČINA
 | `--dry-run` | Neukládat soubory, jen ukázat co by se stalo |
 | `--si-normalize` | Převede jednotky na základní SI (mA → A, kV → V, MΩ → Ω) |
 | `--convert-units` | Převede jednotky dle JSON: `'{"I":"A","U":"mV"}'` |
+| `-ru`, `--rel-uncertainty` | Doplní relativní nejistotu (`δ = u_c/|μ|·100 %`) do captionu LaTeX tabulky. Vyžaduje `-lt`. |
 | `--output-format` | `text` (výchozí) nebo `json` |
 
 Podporované SI prefixy: y, z, a, f, p, n, μ, u, m, c, d, da, h, k, M, G, T, P, E, Z, Y.
@@ -356,20 +387,27 @@ python3 main.py neprima_chyba -i mereni.toml
 
 #### Výstup
 
-Pro každou funkci v sekci `FUNKCE` vypíšeme čtyři řádky:
+Pro každou funkci v sekci `FUNKCE` vypíšeme až pět řádků:
 
 ```
 u
-├──LaTeX    = $u = \frac{m}{V}$
-├──Hodnota  = 2.750 * 10^-3 (0.002749883…)
-├──Chyba    = 6.857 * 10^-6 (6.856844…)
-└──Výsledek = (2750 ± 7) kg*m^-3
+├──LaTeX          = $u = \frac{m}{V}$
+├──Hodnota        = 2.750 * 10^-3 (0.002749883…)
+├──Chyba          = 6.857 * 10^-6 (6.856844…)
+├──Výsledek       = (2750 ± 7) kg*m^-3
+├──Originál       = (0.00275 ± 0.00001) g*mm**-3
+└──Rel. nejistota = 0.249 %
 ```
 
 - **`LaTeX`** — zdrojový tvar funkce ve formátu LaTeX (přes `sympy.latex`), připravený k vložení do protokolu.
 - **`Hodnota`** — střední hodnota funkce (vyhodnocená v aritmetických průměrech vstupů).
 - **`Chyba`** — propagovaná nejistota dle GUM `σ_w = √(Σᵢ (∂w/∂xᵢ · σ_xᵢ)²)`.
-- **`Výsledek`** — `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6 (nejistota na 1 sig. cifru, pokud její vedoucí číslice je ≥ 3, jinak na 2 sig. cifry; hodnota na stejné desetinné místo). Pokud má funkce v sekci `FUNKCE` anotaci `[jednotka]`, nástroj automaticky převede na základní SI jednotky (např. `g·mm⁻³ → kg·m⁻³`), pokud převedená forma odstraní `× 10^N` a má nejvýše 2 desetinná místa.
+- **`Výsledek`** — `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6: **vždy 2 signifikantní číslice na nejistotě**, hodnota zaokrouhlená na stejné desetinné místo. Tři automatické přeformátování:
+    1. **SI převod složené jednotky** (`g·mm⁻³ → kg·m⁻³`) — použije se, pokud převedená forma neobsahuje `× 10^N` a má ≤ 2 desetinná místa.
+    2. **SI prefix rescaling jednoduché jednotky** (`m → mm`, `g → mg`, `s → ns`, …) — použije se, pokud nejistota potřebuje > 2 desetinná místa nebo je ≥ 1000 v původní jednotce. Hledá se nejmenší násobek 1000 takový, aby výsledná nejistota měla 0–2 desetinných míst.
+    3. **Plain vs. scientific notation** — plain notation pro hodnoty v rozsahu `[10⁻², 10⁸)`, jinak `× 10^N`.
+- **`Originál`** — `(hodnota ± nejistota)` v původní deklarované jednotce (bez rescalingu i SI převodu). Užitečné pro konzistentní reportování napříč funkcemi, které sdílí rodinu jednotek (např. všechny hmotnosti v `g`). Tento řádek se objeví jen pokud má funkce anotaci `[jednotka]`.
+- **`Rel. nejistota`** — relativní nejistota `δ = σ/|μ| × 100 %`. Užitečné pro porovnávání precizností napříč různými veličinami v protokolu. Vrací `—` pokud je střední hodnota nulová.
 
 #### Vstupní formát `.txt` (indentovaný blokový zápis)
 

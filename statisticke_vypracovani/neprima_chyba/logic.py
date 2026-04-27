@@ -3,7 +3,7 @@ import json
 from sympy import symbols, lambdify, latex
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
-from utils import color_print, return_Cislo_Krat_10_Na, extract_variables, gum_round, parse_composite_unit, pick_display
+from utils import color_print, return_Cislo_Krat_10_Na, extract_variables, gum_round, parse_composite_unit, pick_display, rescale_simple_unit
 from objects.units import extract_name_unit
 from statisticke_vypracovani.aritmeticky_prumer.logic import AritmetickyPrumer, _parse_typ_b
 from statisticke_vypracovani.base import Method
@@ -88,8 +88,10 @@ class NeprimaChyba(Method):
             variablesNEW = variables + list(local_const_dict.keys())
             f = lambdify(variablesNEW, derivatives, 'numpy')
             f_val = lambdify(variablesNEW, y, 'numpy')  # samotná funkce — pro střední hodnotu
-            chyby = list(aritmety.keys())
-            sorted_keys = sorted(aritmety.keys())
+            # 'variables' jsou jen ty, ktere se v dane funkci skutecne vyskytuji.
+            # aritmety muze obsahovat dalsi promenne (z ELEMENTY), ktere zde nepouzijeme.
+            chyby = list(variables)
+            sorted_keys = list(variables)
             test = (
                 [[aritmety[k][0]] for k in sorted_keys]
                 + [[local_const_dict[n]] for n in variablesNEW if n in local_const_dict]
@@ -112,20 +114,38 @@ class NeprimaChyba(Method):
                 f"{return_Cislo_Krat_10_Na(mean_R)} ({mean_R})"
             )
             print(f"├──{color_print.UNDERLINE}Chyba{color_print.END}    = {na_desatou} ({cislo})")
-            orig_disp = gum_round(mean_R, cislo)
+            # Relativni nejistota = |sigma / mean| * 100 % (univerzalni, bez ohledu na jednotku).
+            import math as _math
+            if _math.isfinite(mean_R) and _math.isfinite(cislo) and mean_R != 0:
+                rel_pct = abs(cislo / mean_R) * 100.0
+                if 0.001 <= rel_pct < 1000:
+                    rel_str = f"{rel_pct:.3g} %"
+                else:
+                    rel_str = f"{rel_pct:.2e} %"
+            else:
+                rel_str = "—"
+
             if unit_str:
+                # SI prefix rescaling jednoduche jednotky aby sigma mela 0-2 desetinna mista.
+                m_resc, s_resc, u_resc = rescale_simple_unit(mean_R, cislo, unit_str)
+                resc_disp = gum_round(m_resc, s_resc)
                 try:
                     factor, si_unit = parse_composite_unit(unit_str)
                     if factor != 1.0:
                         si_disp = gum_round(mean_R * factor, cislo * factor)
-                        chosen, chosen_unit = pick_display(orig_disp, si_disp, unit_str, si_unit)
+                        chosen, chosen_unit = pick_display(resc_disp, si_disp, u_resc, si_unit)
                     else:
-                        chosen, chosen_unit = orig_disp, unit_str
+                        chosen, chosen_unit = resc_disp, u_resc
                 except Exception:
-                    chosen, chosen_unit = orig_disp, unit_str
-                print(f"└──{color_print.UNDERLINE}Výsledek{color_print.END} = {chosen} {chosen_unit}")
+                    chosen, chosen_unit = resc_disp, u_resc
+                print(f"├──{color_print.UNDERLINE}Výsledek{color_print.END} = {chosen} {chosen_unit}")
+                orig_unit_disp = gum_round(mean_R, cislo)
+                print(f"├──{color_print.UNDERLINE}Originál{color_print.END} = {orig_unit_disp} {unit_str}")
+                print(f"└──{color_print.UNDERLINE}Rel. nejistota{color_print.END} = {rel_str}")
             else:
-                print(f"└──{color_print.UNDERLINE}Výsledek{color_print.END} = {orig_disp}")
+                orig_disp = gum_round(mean_R, cislo)
+                print(f"├──{color_print.UNDERLINE}Výsledek{color_print.END} = {orig_disp}")
+                print(f"└──{color_print.UNDERLINE}Rel. nejistota{color_print.END} = {rel_str}")
             print("-" * 100)
 
         return resulte
@@ -163,6 +183,7 @@ class NeprimaChyba(Method):
 
         elementy = {}
         aritmety = {}
+        u_B_per_var = {}
         has_type_b = False
 
         for name, vinfo in veliciny.items():
@@ -195,15 +216,22 @@ class NeprimaChyba(Method):
                         f"Velicina '{name}': typ_b musi byt cislo nebo "
                         f"dict {{ a = ..., distribuce = ... }}"
                     )
+                u_B_per_var[name] = u_B
+            else:
+                u_B_per_var[name] = 0.0
 
-                n = len(values)
-                mean = sum(values) / n if n else 0.0
+        # Pokud aspon jedna velicina ma typ_b, aritmety musi pokryvat VSECHNY
+        # promenne (ostatni dostanou u_B = 0, propagace pouzije jen u_A).
+        if has_type_b:
+            for name, vals in elementy.items():
+                n = len(vals)
+                mean = sum(vals) / n if n else 0.0
                 if n > 1:
-                    var = sum((x - mean) ** 2 for x in values) / (n * (n - 1))
+                    var = sum((x - mean) ** 2 for x in vals) / (n * (n - 1))
                     u_A = math.sqrt(var)
                 else:
                     u_A = 0.0
-                u_c = math.sqrt(u_A**2 + u_B**2)
+                u_c = math.sqrt(u_A**2 + u_B_per_var[name] ** 2)
                 aritmety[name] = [mean, u_c]
 
         funkce = {}

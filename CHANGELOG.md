@@ -12,19 +12,33 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - AppImage pro Linux — jediný spustitelný soubor `Statistika-*.AppImage`, není třeba rozbalovat.
 - macOS build — nové buildy `statistika_*_macos.tar.gz` a `statistika_grafy_*_macos.tar.gz` (PyInstaller na `macos-latest`).
 
+**Vstupní formáty**
+
+- TOML rozpoznán napříč všemi metodami pracujícími se vstupním souborem (`ap`, `regrese`, `derivace`, `graf`, `histogram`, `integrace`, `nc`). Implementace: `InputParser.parse_toml` + dispatch v `InputParser.from_file` pro `.toml` extension. Schéma: `[veliciny.<nazev>]` s `hodnoty`, volitelně `unit` a `typ_b` (skalární přímý `u_B` nebo inline tabulka `{ a = ..., distribuce = ... }`). Pro `nc` se použije rozšířené schéma s `[funkce.<nazev>]` sekcemi.
+
 **Vylepšení `neprima_chyba`**
 
 - Nový vstupní formát `.toml` jako alternativa k indentovanému `.txt` (sekce `[veliciny.<nazev>]` a `[funkce.<nazev>]`, inline tabulka pro `typ_b`). Imunní vůči pasti desetinné/separátorové čárky a indentačním chybám, které trápily `.txt` parser. Stávající `.txt` a `.xlsx` formáty zachovány.
 - Anotace `[jednotka]` na klíčích v `FUNKCE` (např. `u [g*mm**-3] = m/V`) — nástroj uloží jednotku, pokusí se ji převést na základní SI jednotky (gram → kg, mm → m, …) a v řádku `Výsledek` zobrazí převedenou formu, pokud splňuje pravidlo „bez `× 10^N` a nejvýš 2 desetinná místa". Hmotnostní jednotky se převádí na `kg` (v rozporu s `objects/units.parse_unit`, který používá `g` jako base).
-- Nové výstupní řádky pro každou funkci: `LaTeX` (zdrojový tvar přes `sympy.latex`), `Hodnota` (střední hodnota), `Výsledek` (`(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6).
-- Návratová hodnota metody rozšířena z 5-tice na 6-tici `(name, sigma, formatted_sigma, mean, latex_str, unit_str)`. Tester aktualizován.
+- Nové výstupní řádky pro každou funkci: `LaTeX` (zdrojový tvar přes `sympy.latex`), `Hodnota` (střední hodnota), `Výsledek` (`(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6 s **vždy 2 sig. cifry na nejistotě**), `Originál` (totéž v deklarované jednotce, pro konzistentní reportování napříč protokolem).
+- **Auto-rescale jednoduchých jednotek** přes `utils.rescale_simple_unit` — pokud nejistota potřebuje > 2 desetinná místa, vybere se SI prefix (`m → mm/μm/…`, `g → mg/μg/…`) tak, aby výsledná nejistota měla 0–2 desetinná místa.
+- Více funkcí najednou — TOML může obsahovat libovolný počet `[funkce.<jméno>]` sekcí, každá vypíše svůj propagovaný výsledek nezávisle. Vhodné pro zobrazení mezi-výpočtů (např. `m_lih = M_2 - M_1`, `m_voda = M_3 - M_1`, `rho = m_lih/m_voda * rho_v` v jednom běhu).
+- Bugfix v `_derivace`: když funkce v `FUNKCE` používá jen podmnožinu proměnných z `ELEMENTY`, propagace správně vezme jen ty (dříve padalo `TypeError: takes N arguments but M were given`).
+- Návratová hodnota metody rozšířena z 5-tice na 6-tici `(name, sigma, formatted_sigma, mean, latex_str, unit_str)`. Tester aktualizován + přidán `test_run_toml`.
+- Nový řádek `Rel. nejistota` v každém výstupu (po `Výsledek`/`Originál`) — relativní nejistota `δ = σ/|μ| × 100 %`, formátovaná na 3 sig. cifry (přepíná se na scientific notation mimo rozsah `[0.001 %, 1000 %)`). Univerzální (bez ohledu na jednotku); umožňuje porovnávat precizionost napříč veličinami.
 
 **Pomocné funkce v `utils.py`**
 
-- `round_half_up(value, ndigits)` — školní zaokrouhlování (round half away from zero) přes `Decimal(repr(value)).quantize(..., ROUND_HALF_UP)`. Imunní vůči binární reprezentaci floatů (např. `33.05` se nyní zaokrouhlí na `33.1` namísto `33.0`).
-- `gum_round(value, uncertainty)` — vrací `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6 se sdíleným exponentem; používá `round_half_up` interně. Pravidlo plain/scientific: bez `× 10^N` v rozsahu `10⁻² ≤ |val| ≤ 10⁴`.
+- `round_half_up(value, ndigits)` — školní zaokrouhlování (round half away from zero) přes `Decimal(repr(float(value))).quantize(..., ROUND_HALF_UP)`. Imunní vůči binární reprezentaci floatů (např. `33.05` se nyní zaokrouhlí na `33.1` namísto `33.0`) i vůči NumPy 2.x reprezentaci scalárů (`np.float64(33.05)` → `33.1`).
+- `gum_round(value, uncertainty)` — vrací `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6: **vždy 2 sig. cifry** na nejistotě, hodnota na stejnou pozici. Plain notation pro `|val|` v rozsahu `[10⁻², 10⁸)`, jinak `× 10^N`.
 - `parse_composite_unit(unit_str)` — parsuje složené jednotky `g*mm**-3`, `g/cm^3`, `m/s` a vrací `(faktor_do_si, si_jednotka)`. Hmotnost převádí na `kg`.
-- `pick_display(orig, si, orig_unit, si_unit)` — vybere lepší z dvou zaokrouhlených zobrazení podle pravidla výše. SI forma se použije pouze pokud splňuje obě podmínky.
+- `pick_display(orig, si, orig_unit, si_unit)` — vybere lepší z dvou zaokrouhlených zobrazení podle pravidla „bez `× 10^N` a ≤ 2 desetinná místa". SI forma se použije pouze pokud splňuje obě podmínky.
+- `rescale_simple_unit(mean, sigma, unit)` — pro jednoduché SI base jednotky (`m`, `g`, `s`, `A`, …) vybere SI prefix tak, aby nejistota měla 0–2 desetinných míst. Krok prefixu je vždy násobek 3 (m → mm → μm → …, m → km → Mm → …).
+
+**Vylepšení `aritmeticky_prumer`**
+
+- Nový řádek `Relativní nejistota` v konzolovém výstupu (jak v základní variantě, tak s typem B) — `δ = σ/|μ| × 100 %`, formátovaná na 3 sig. cifry. Pro výstup s type B používá `u_c`, jinak `u_A`. Vrací `—` pokud `μ = 0` nebo není finite.
+- Nový flag `-ru` / `--rel-uncertainty` pro `-lt` (LaTeX tabulky) — když je aktivní, ke každému řádku stats v captionu (`$X = (μ ± σ)\,\mathrm{unit}$`) se připojí `\quad(\delta_X = X.X\,\%)`. Předává se přes `MeasurementSet.to_latex_table(include_rel_uncertainty=True)`.
 
 **Zaokrouhlování ve výstupu**
 
@@ -46,6 +60,8 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - **`utils.return_Cislo_Krat_10_Na(0)` padal na `ValueError: math domain error`** (volá `math.log10(0)`). Přidána ochrana pro `x == 0` a non-finite (`inf`, `-inf`, `nan`) — vrátí `str(x)` místo crashe. Symptomatické u `nc` runs, kde nebyla zadaná žádná nejistota — `sig_R` vyšlo `0` a celý běh skončil tracebackem místo zobrazení nuly.
 - **`deploy.sh` selhával na Windows Git Bash s `bash: python3: command not found`** — skript hardcodoval `python3`, který na Windows neexistuje (jen `python` nebo `py`). Přidána funkce `detect_python` zkoušející `python3 → python → py -3`. Zároveň opraven syntax-check loop, který kvůli pre-existující chybě v `if [ $? -eq 0 ]` po `for` smyčce maskoval chyby — nahrazeno akumulátorem `SYNTAX_OK=1`.
 - **`ruff format --check`** v CI selhával na 56 souborech, které nikdy neprošly formaterem v0.4. Strom normalizován pomocí pinned `ruff==0.15.12`, samotná akce vrací green.
+- **`utils.round_half_up` padal pod NumPy 2.x** s `decimal.InvalidOperation` při zpracování `numpy.float64` skalárů — NumPy 2.0 změnilo `repr(np.float64(x))` na `'np.float64(x)'`, což `Decimal` nedokáže parsovat. Helper nyní cast přes `float(value)` před `repr`. Symptom: `aritmeticky_prumer -lt` padal při generování LaTeX tabulky.
+- **`_derivace` v `nc`** padalo `TypeError: takes N arguments but M were given`, když funkce v `FUNKCE` používala podmnožinu proměnných z `ELEMENTY`. Propagace nyní používá `chyby = list(variables)` místo `list(aritmety.keys())`.
 
 #### Původní oprava CET / `--strip`
 

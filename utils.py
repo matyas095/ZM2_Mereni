@@ -32,7 +32,7 @@ def round_half_up(value: float, ndigits: int = 0) -> float:
     if not math.isfinite(value):
         return value
     quant = Decimal(10) ** -ndigits
-    return float(Decimal(repr(value)).quantize(quant, rounding=ROUND_HALF_UP))
+    return float(Decimal(repr(float(value))).quantize(quant, rounding=ROUND_HALF_UP))
 
 
 
@@ -54,7 +54,7 @@ def round_half_up(value: float, ndigits: int = 0) -> float:
     if not math.isfinite(value):
         return value
     quant = Decimal(10) ** -ndigits
-    return float(Decimal(repr(value)).quantize(quant, rounding=ROUND_HALF_UP))
+    return float(Decimal(repr(float(value))).quantize(quant, rounding=ROUND_HALF_UP))
 
 
 def _color_scheme():
@@ -132,7 +132,9 @@ def gum_round(value: float, uncertainty: float) -> str:
         return f"({value} ± 0)"
     unc_exp = math.floor(math.log10(abs(uncertainty)))
     lead = abs(uncertainty) / 10**unc_exp
-    sig_figs = 2 if lead < 3 else 1
+    # Vzdy 2 sig. cifry na nejistote (dle preference protokolu).
+    # GUM §7.2.6 to dovoluje, NIST doporucuje 2 cifry pro vetsi cestnost zobrazene presnosti.
+    sig_figs = 2
     round_to_pos = unc_exp - (sig_figs - 1)
     decimals = -round_to_pos
     val_r = round_half_up(value, decimals)
@@ -141,7 +143,9 @@ def gum_round(value: float, uncertainty: float) -> str:
         val_exp = round_to_pos
     else:
         val_exp = math.floor(math.log10(abs(val_r)))
-    if -2 <= val_exp <= 4:
+    # Plain notation pro |val| v <0.01, 99 999 999) — sirsi rozsah aby
+    # rescaled hodnoty (napr. 25 023 300 μg) nepadaly do scientific.
+    if -2 <= val_exp <= 7:
         dp = max(0, decimals)
         if dp == 0:
             return f"({int(val_r)} ± {int(unc_r)})"
@@ -236,6 +240,63 @@ def parse_composite_unit(unit_str: str) -> tuple:
             parts.append(f'{b}^{e}')
     return total, '*'.join(parts) if parts else ''
 
+
+
+def rescale_simple_unit(mean: float, sigma: float, unit: str) -> tuple:
+    """Pokud je `unit` jednoducha SI base jednotka bez prefixu (napr. 'm', 'g', 's', 'A')
+    a sigma je 'nepekny' (< 0.01 nebo >= 1000), prepocte hodnotu i nejistotu na vhodny
+    SI prefix tak, aby sigma spadla do rozsahu [1, 1000).
+
+    Funguje jen pro jednoduche jednotky bez prefixu a bez slozitych vyrazu (*/^).
+    Pro slozite jednotky (`g*mm**-3` ap.) vraci puvodni triple bez zmeny — tam se
+    pouziva `parse_composite_unit` pro SI prevod.
+
+    Priklady:
+        rescale_simple_unit(32.3432, 0.003, 'm')   -> (32343.2, 3.0, 'mm')
+        rescale_simple_unit(32.3432, 1.1643, 'm')  -> (32.3432, 1.1643, 'm')   (no change)
+        rescale_simple_unit(0.05, 5e-7, 's')       -> (5e4, 0.5, 'us')         (here returns 'μs')
+    """
+    SIMPLE_BASES = {'m', 'g', 's', 'A', 'K', 'mol', 'cd', 'Hz', 'N', 'Pa',
+                    'J', 'W', 'V', 'F', 'C', 'T', 'Wb', 'lx', 'lm', 'rad'}
+    # Mapuje "scaling" exponent (jakym 10^k nasobime hodnoty) -> SI prefix.
+    # k=3 znamena nasobeni *1000 -> jdeme na 1000x mensi jednotku ('m' jako mili).
+    SCALING_TO_PREFIX = {
+        15: 'f', 12: 'p',  9: 'n',  6: 'μ',  3: 'm',
+        -3: 'k', -6: 'M', -9: 'G', -12: 'T', -15: 'P',
+    }
+
+    if unit not in SIMPLE_BASES:
+        return mean, sigma, unit
+    if sigma == 0 or not math.isfinite(sigma) or not math.isfinite(mean):
+        return mean, sigma, unit
+
+    sig_exp = math.floor(math.log10(abs(sigma)))
+    # Pocet desetinnych mist potrebnych pro zobrazeni sigma na 2 sig. cifry.
+    # Napr. sigma = 0.0075 (sig_exp=-3) -> sig_decimals=4 ("0.0075")
+    #       sigma = 5.8e-5 (sig_exp=-5) -> sig_decimals=6 ("0.000058")
+    #       sigma = 1.16   (sig_exp=0)  -> sig_decimals=1 ("1.2")
+    sig_decimals = max(0, -(sig_exp - 1))
+
+    scaling = 0
+    if sig_decimals > 2:
+        # Sigma ma vic nez 2 desetinna mista -> downscale (jdeme na mensi jednotku).
+        # Hledame nejmensi nasobek 3 takovy, aby new_sig_decimals <= 2.
+        # new_sig_exp = sig_exp + scaling -> sig_decimals_new = max(0, -(new_sig_exp - 1)) <= 2
+        # => scaling >= -1 - sig_exp
+        needed = -1 - sig_exp
+        scaling = math.ceil(needed / 3) * 3
+    elif abs(sigma) >= 1000:
+        # Sigma >= 1000 -> upscale (jdeme na vetsi jednotku, kg, Mg, ...).
+        # Hledame nejmensi |scaling| (zaporny) takovy, aby new_sig_exp <= 2.
+        needed = sig_exp - 2
+        scaling = -math.ceil(needed / 3) * 3
+
+    if scaling == 0 or scaling not in SCALING_TO_PREFIX:
+        return mean, sigma, unit
+
+    factor = 10 ** scaling
+    new_unit = SCALING_TO_PREFIX[scaling] + unit
+    return mean * factor, sigma * factor, new_unit
 
 def pick_display(orig_str: str, si_str: str, orig_unit: str, si_unit: str) -> tuple:
     """Vybere lepsi z (orig, si) zobrazeni:

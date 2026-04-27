@@ -168,19 +168,33 @@ class Measurement:
             print(
                 f"├──{color_print.YELLOW}Odstraněno outlierů{color_print.END} = {len(self.removed_values)}/{self.original_n} ({', '.join(rem_short)})"
             )
+        # Relativni nejistota = sigma / |mean| (sigma = u_c pokud je type B, jinak u_A).
+        # Pouziva se v posledni radce stromu; vraci "—" pokud mean == 0 nebo neni finite.
+        sigma_rel = self.u_c if (show_type_b or self.u_B > 0) else self.u_A
+        if math.isfinite(self.mean) and math.isfinite(sigma_rel) and self.mean != 0:
+            rel_pct = abs(sigma_rel / self.mean) * 100.0
+            if 0.001 <= rel_pct < 1000:
+                rel_str = f"{rel_pct:.3g} %"
+            else:
+                rel_str = f"{rel_pct:.2e} %"
+        else:
+            rel_str = "—"
+
         if show_type_b or self.u_B > 0:
             print(f"├──{color_print.UNDERLINE}Aritmetický průměr{color_print.END} = {self._fmt(self.mean)}")
             print(f"├──{color_print.UNDERLINE}Nejistota typu A{color_print.END} = {self._fmt(self.u_A)}")
             print(f"├──{color_print.UNDERLINE}Nejistota typu B{color_print.END} = {self._fmt(self.u_B)}")
             print(f"├──{color_print.UNDERLINE}Kombinovaná nejistota{color_print.END} = {self._fmt(self.u_c)}")
             print(
-                f"└──{color_print.UNDERLINE}Rozšířená nejistota (k=2){color_print.END} = {self._fmt(self.expanded_uncertainty())}"
+                f"├──{color_print.UNDERLINE}Rozšířená nejistota (k=2){color_print.END} = {self._fmt(self.expanded_uncertainty())}"
             )
+            print(f"└──{color_print.UNDERLINE}Relativní nejistota{color_print.END} = {rel_str}")
         else:
             print(f"├──{color_print.UNDERLINE}Aritmetický průměr{color_print.END} = {self._fmt(self.mean)}")
             print(
-                f"└──{color_print.UNDERLINE}Chyba aritmetického průměru{color_print.END} = {self._fmt(self.u_A)}"
+                f"├──{color_print.UNDERLINE}Chyba aritmetického průměru{color_print.END} = {self._fmt(self.u_A)}"
             )
+            print(f"└──{color_print.UNDERLINE}Relativní nejistota{color_print.END} = {rel_str}")
         print("-" * 100)
 
     def __repr__(self) -> str:

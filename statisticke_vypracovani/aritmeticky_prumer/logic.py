@@ -158,6 +158,12 @@ class AritmetickyPrumer(Method):
                 "required": False,
                 "type": json.loads,
             },
+            {
+                "flags": ["-ru", "--rel-uncertainty"],
+                "help": "Doplní relativní nejistotu (δ = u_c/|μ|·100%) do captionu LaTeX tabulky. Vyžaduje -lt.",
+                "required": False,
+                "action": "store_true",
+            },
         ]
 
     def run(self, args: Any, do_print: bool = True) -> dict:
@@ -271,6 +277,7 @@ class AritmetickyPrumer(Method):
                 custom_caption=getattr(args, 'caption', None),
                 custom_label=getattr(args, 'label', None),
                 dry_run=dry_run,
+                include_rel_uncertainty=getattr(args, 'rel_uncertainty', False),
             )
 
         export_csv = getattr(args, 'export_csv', None) if not isinstance(args, dict) else None

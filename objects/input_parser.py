@@ -132,9 +132,65 @@ class InputParser:
             return False
 
     @staticmethod
+    def parse_toml(file_path: str, u_B_map: dict = None) -> MeasurementSet:
+        """Parsuje TOML soubor s `[veliciny.<nazev>]` sekcemi do MeasurementSet.
+
+        Pro `ap`, `regrese`, `derivace`, `graf`, `histogram`, `integrace`.
+        Pro `neprima_chyba` se pouziva slozitejsi schema, viz `NeprimaChyba._toml_input`.
+        """
+        try:
+            import tomllib
+        except ImportError:
+            import tomli as tomllib  # Python 3.10 fallback
+        import math
+
+        u_B_map = u_B_map or {}
+        with open(file_path, "rb") as f:
+            cfg = tomllib.load(f)
+
+        veliciny = cfg.get("veliciny", {})
+        if not veliciny:
+            raise ValueError(
+                f"TOML soubor '{file_path}' nema zadnou sekci [veliciny.<nazev>]."
+            )
+
+        ms = MeasurementSet()
+        for name, vinfo in veliciny.items():
+            values = vinfo.get("hodnoty")
+            if values is None:
+                raise ValueError(f"Velicina '{name}' nema klic 'hodnoty'")
+
+            tb = vinfo.get("typ_b")
+            if tb is None:
+                u_B = u_B_map.get(name, 0.0)
+            elif isinstance(tb, (int, float)):
+                u_B = float(tb)
+            elif isinstance(tb, dict):
+                a = float(tb.get("a", 0.0))
+                dist = str(tb.get("distribuce", "rovnomerne")).strip()
+                if dist == "rovnomerne":
+                    u_B = a / math.sqrt(3)
+                elif dist == "trojuhelnikove":
+                    u_B = a / math.sqrt(6)
+                elif dist == "normalni":
+                    u_B = a / 2.0
+                else:
+                    raise ValueError(f"Velicina '{name}': nezname rozlozeni '{dist}'.")
+            else:
+                raise ValueError(f"Velicina '{name}': typ_b musi byt cislo nebo dict.")
+
+            unit = vinfo.get("unit")
+            display_name = f"{name} [{unit}]" if unit else name
+            ms.add(Measurement(display_name, list(values), u_B=u_B))
+
+        return ms
+
+    @staticmethod
     def from_file(file_path: str, u_B_map: dict = None) -> MeasurementSet:
         if file_path.endswith(".xlsx"):
             return InputParser.parse_xlsx(file_path)
+        if file_path.endswith(".toml"):
+            return InputParser.parse_toml(file_path, u_B_map)
         if InputParser._detect_cassy(file_path):
             return InputParser.parse_cassy(file_path, u_B_map)
         return InputParser.parse_standard(file_path, u_B_map)

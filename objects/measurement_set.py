@@ -91,6 +91,7 @@ class MeasurementSet:
         custom_caption: str = None,
         custom_label: str = None,
         dry_run: bool = False,
+        include_rel_uncertainty: bool = False,
     ):
         import math
         import os
@@ -130,6 +131,7 @@ class MeasurementSet:
             caption_parts.append(os.path.basename(source_file))
         from objects.units import extract_name_unit, display_unit
 
+        import math as _math
         for m in self.measurements:
             p = max(m.precision, 1)
             mean_str = f"{round_half_up(m.mean, p):.{p}f}".replace(".", _dec_sep())
@@ -137,7 +139,16 @@ class MeasurementSet:
             var, unit = extract_name_unit(m.name)
             var_clean = var.replace("$", "")
             u_disp = display_unit(unit)
-            caption_parts.append(f"${var_clean} = ({mean_str} \\pm {err_str})\\,\\mathrm{{{u_disp}}}$")
+            line = f"${var_clean} = ({mean_str} \\pm {err_str})\\,\\mathrm{{{u_disp}}}$"
+            if include_rel_uncertainty and _math.isfinite(m.mean) and m.mean != 0:
+                rel_pct = abs(m.u_c / m.mean) * 100.0
+                if 0.001 <= rel_pct < 1000:
+                    rel_str = f"{rel_pct:.3g}\\,\\%"
+                else:
+                    rel_str = f"{rel_pct:.2e}\\,\\%"
+                # Vlozit "(\delta = X.X %)" za stats radek
+                line += f"\\quad(\\delta_{{{var_clean}}} = {rel_str})"
+            caption_parts.append(line)
         caption = " \\\\ ".join(caption_parts)
         from utils import balance_math_braces
 

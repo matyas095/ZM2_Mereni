@@ -40,6 +40,17 @@ V tomto souboru dokumentujeme významné změny v projektu. Formát vychází z 
 - Nový řádek `Relativní nejistota` v konzolovém výstupu (jak v základní variantě, tak s typem B) — `δ = σ/|μ| × 100 %`, formátovaná na 3 sig. cifry. Pro výstup s type B používá `u_c`, jinak `u_A`. Vrací `—` pokud `μ = 0` nebo není finite.
 - Nový flag `-ru` / `--rel-uncertainty` pro `-lt` (LaTeX tabulky) — když je aktivní, ke každému řádku stats v captionu (`$X = (μ ± σ)\,\mathrm{unit}$`) se připojí `\quad(\delta_X = X.X\,\%)`. Předává se přes `MeasurementSet.to_latex_table(include_rel_uncertainty=True)`.
 
+**Vylepšení `histogram`**
+
+- **Osa X — přesné hraniční hodnoty binů** jako tikové popisky (otočené 45°, počet desetinných míst se počítá automaticky z nejmenší šířky binu, ohraničený na 6).
+- **Osa Y — jen celočíselné tiky** (`MaxNLocator(integer=True)`); `Četnost` je vždy přirozené číslo.
+- **Titulek a popisek osy X** — generuje se přes `extract_name_unit` jako `$var$ [unit]` se vždy mezerou (i kdyby vstupní název byl `d2[mm]` bez mezery).
+- **Mřížka** — slabá (alpha 0.3) na obou osách.
+- **Multi-velicina mode**: pokud `-c` chybí a vstupní soubor (typicky `.toml`) má víc `[veliciny.*]` sekcí, vykreslí se histogram pro každou veličinu zvlášť. Soubory jsou pojmenované `{--name}_{velicina}.svg` (název veličiny sanitizován pro filesystem).
+- **Nový flag `--combined`**: všechny veličiny do jednoho grafu (`alpha=0.5`), s legendou ukazující barvy a názvy. Výsledek jeden soubor `{--name}.svg`. V tomto režimu mají Gaussovky čárkovaný styl a barvu odpovídající histogramu.
+- **Nový flag `--colors`**: čárkou oddělený seznam barev pro `--combined` režim (např. `'crimson,forestgreen,royalblue'` nebo hex `'#ff0000,#00ff00,#0000ff'`). Výchozí: matplotlib `tab10` cyklus, opakovaný cyklicky pokud je víc veličin než barev.
+- Návratová hodnota `Histogram.run()` přepracována — vrací `{"histogram": {<col_name>: {n, bins, min, max, mean, sigma, save_file, color}}}` (per-velicina dict). Použitelné v programatickém API.
+
 **Zaokrouhlování ve výstupu**
 
 - `objects/measurement.py:142, 155` (`round_value`, `_fmt`) a `objects/measurement_set.py:112, 135–136` (LaTeX tabulka, caption stats) — všechny `round()` volání nahrazeny `round_half_up()`. Důsledek: hodnoty jako `33.05` se v konzolovém i LaTeX výstupu zobrazí jako `33.1`, ne `33.0`.

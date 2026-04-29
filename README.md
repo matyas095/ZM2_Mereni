@@ -763,17 +763,49 @@ Hodnotu redukovaného χ² interpretujeme dle Tabulky 2.
 Histogram rozdělení dat s volitelným proložením Gaussovkou. Užitečné zejména pro ověření normality rozdělení naměřených hodnot. Výstupem je soubor `.svg`.
 
 ```bash
-python3 main.py histogram -i data.txt --gauss
+# Jeden histogram pro konkrétní sloupec
 python3 main.py histogram -i data.txt -c U --bins 20 -n "Rozdeleni_U"
+
+# Multi-velicina mode: bez -c se vytvoří histogram pro každou veličinu z TOML/TXT
+python3 main.py histogram -i pyknometr.toml -n pyknometr --gauss
+# → výstup: pyknometr_M_1.svg, pyknometr_M_2.svg, pyknometr_M_3.svg
+
+# Kombinovaný režim: všechny veličiny v jednom grafu
+python3 main.py histogram -i pyknometr.toml -n pyk --combined --gauss
+
+# Vlastní barvy v kombinovaném režimu
+python3 main.py histogram -i pyknometr.toml -n pyk --combined \
+    --colors "crimson,forestgreen,royalblue"
 ```
+
+#### Výstup
+
+- **Osa X** — popisky tiků jsou *přesné hraniční hodnoty binů* (otočené 45°, automatická precizní formátování podle šířky binu).
+- **Osa Y** — `Četnost` má jen celočíselné tiky (přes `MaxNLocator(integer=True)`).
+- **Titulek a popisek osy X** — `var [unit]` s mezerou; proměnná v matematickém režimu (italic, fyzikální konvence), jednotka v hranatých závorkách roman. Funguje i pro vstupy bez mezery (`d2[mm]` → `d2 [mm]`).
+- **Mřížka** — slabá (alpha 0.3) na obou osách.
+- **Gaussovka** (s `--gauss`) — překryta červeně se škálováním na `n × šířka_binu × normální_PDF` (zachovává si stejnou plochu jako histogram).
+
+#### Multi-velicina chování
+
+| `-c` flag | Režim | Výstup |
+|-----------|-------|--------|
+| zadán | jeden histogram | `{--name}.svg` |
+| **vynechán** + jedna veličina | jeden histogram | `{--name}.svg` |
+| **vynechán** + víc veličin, **bez `--combined`** | samostatné soubory | `{--name}_{var}.svg` na veličinu |
+| **vynechán** + víc veličin, **s `--combined`** | jeden přepokladový graf | `{--name}.svg` |
+
+V kombinovaném režimu dostane každá veličina svou barvu (z `--colors` nebo z výchozího `tab10` cyklu) a v legendě se zobrazí pod svým plným názvem `var [unit]`. Pokud je aktivní `--gauss`, každá Gaussovka má barvu shodnou s histogramem (čárkovaný styl).
 
 | Argument | Popis |
 |----------|-------|
-| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný) |
-| `-c`, `--column` | Sloupec pro histogram (výchozí: první) |
-| `-b`, `--bins` | Počet binů (výchozí: √n) |
-| `-n`, `--name` | Název výstupního grafu |
+| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný); přijímá `.txt`, `.toml`, `.xlsx` |
+| `-c`, `--column` | Sloupec pro histogram (výchozí: ALL — histogram pro každou veličinu) |
+| `-b`, `--bins` | Počet binů (výchozí: auto = √n) |
+| `-n`, `--name` | Název výstupního grafu (přidá se `_<velicina>` v multi-mode) |
 | `--gauss` | Překryje Gaussovkou (pro ověření normality) |
+| `--combined` | Vykreslí všechny veličiny do jednoho grafu místo samostatných souborů |
+| `--colors` | Čárkou oddělené barvy pro `--combined` (např. `'red,green,blue'`). Výchozí: tab10 cyklus |
 
 ---
 

@@ -82,7 +82,7 @@ def main():
     script_dir.mkdir(parents=True, exist_ok=True);
     
     parser = argparse.ArgumentParser(description="Process sensor measurement data.");
-    parser.add_argument("-i", "--input", required=True, help="Path to the input measurement file");
+    parser.add_argument("-i", "--inputfiles", required=True, help="Path to the inputfiles measurement file");
     parser.add_argument("-o", "--output", default="output_data.txt", help="Path to the output file (default: output_data.txt)");
     
     args = parser.parse_args();

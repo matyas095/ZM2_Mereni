@@ -1,11 +1,11 @@
-[veliciny.M_1]
+[veliciny.m_1]
 unit = "g"
-hodnoty = [35.6341, 35.7142, 35.7142]   # samotný pyknometr
+hodnoty = [35.6341, 35.7142, 35.7142]   # kovová
 
-[veliciny.M_2]
+[veliciny.m_2]
 unit = "g"
-hodnoty = [25.6338, 25.6339, 25.6338]   # líh
+hodnoty = [25.6338, 25.6339, 25.6338]   # zelená koule
 
-[veliciny.M_3]
+[veliciny.m_3]
 unit = "g"
-hodnoty = [25.588, 25.59, 25.589]   # voda
+hodnoty = [25.588, 25.59, 25.589]   # červená koule

@@ -42,3 +42,4 @@ Všechny výpočty dělány ručně (kalkulátor incident)
 
 ### Měření 3 - Měření hustot kapalných a pevných látek
 - Výpočty přes [Releases](https://github.com/matyas095/ZM2_Mereni/releases)
+- Grafy přes SW v prvním bodě.

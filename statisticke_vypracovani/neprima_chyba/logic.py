@@ -1,7 +1,7 @@
 from typing import Any
 import json
 from sympy import symbols, lambdify, latex
-from sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
 import numpy as np
 from utils import (
     color_print,
@@ -80,17 +80,29 @@ class NeprimaChyba(Method):
                     f"Chybí mi tu data v 'ELEMENTY':\n{color_print.BOLD}{missing_vars}{color_print.END}"
                 )
 
-            SYMPY_RESERVED = {'I', 'E', 'pi', 'oo', 'S', 'N', 'O', 'Q', 'C'}
+            SYMPY_RESERVED = {'I', 'pi', 'oo', 'S', 'N', 'O', 'Q', 'C'}
             collisions = SYMPY_RESERVED & set(variables)
             if collisions:
                 raise ValueError(
                     f"Názvy proměnných {sorted(collisions)} kolidují s vyhrazenými symboly SymPy "
-                    f"(I=imag. jednotka, E=Eulerovo č., pi, oo=∞, S, N, O, Q, C). "
+                    f"(I=imag. jednotka, pi, oo=∞, S, N, O, Q, C). "
                     f"Přejmenuj je v ELEMENTY i FUNKCE (např. I → I_c)."
                 )
 
             sym_map = {name: symbols(name) for name in variables}
-            y = parse_expr(rce, local_dict=sym_map)  # type: ignore
+            # Fyzikalni notace 'arcsin' atd. — sympy parser je sam neumi numericky vyhodnotit
+            # (vraci jako AppliedUndef). Aliasovat na sympy.asin atd.
+            # Tyto aliasy nesmi byt ve sym_map kdyz iterujeme pro derivace —
+            # drzime je v separatnim parse_dict.
+            from sympy import asin, acos, atan, asinh, acosh, atanh, E as Euler
+            parse_dict = dict(sym_map)
+            parse_dict.update({
+                "arcsin": asin, "arccos": acos, "arctan": atan,
+                "arcsinh": asinh, "arccosh": acosh, "arctanh": atanh,
+                "e": Euler,
+            })
+            transformations = standard_transformations + (implicit_multiplication,)
+            y = parse_expr(rce, local_dict=parse_dict, transformations=transformations)  # type: ignore
             latex_str = latex(y)  # LaTeX zdroj pro vložení do protokolu
             derivatives = [y.diff(x) for x in sym_map]
             variablesNEW = variables + list(local_const_dict.keys())

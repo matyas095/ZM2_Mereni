@@ -160,9 +160,16 @@ class AritmetickyPrumer(Method):
             },
             {
                 "flags": ["-ru", "--rel-uncertainty"],
-                "help": "Doplní relativní nejistotu (δ = u_c/|μ|·100%) do captionu LaTeX tabulky. Vyžaduje -lt.",
+                "help": "Doplní relativní nejistotu (δ = u_c/|μ|·100%%) do captionu LaTeX tabulky. Vyžaduje -lt.",
                 "required": False,
                 "action": "store_true",
+            },
+            {
+                "flags": ["--round-by"],
+                "help": "Podle ktere chyby zaokrouhlovat hodnoty v LaTeX tabulce: u_c (kombinovana, default), u_a (typ A / stredni kvadr.), u_b (typ B / pristroj). Vyzaduje -lt.",
+                "required": False,
+                "choices": ["u_c", "u_a", "u_b"],
+                "default": "u_c",
             },
         ]
 
@@ -278,7 +285,16 @@ class AritmetickyPrumer(Method):
                 custom_label=getattr(args, 'label', None),
                 dry_run=dry_run,
                 include_rel_uncertainty=getattr(args, 'rel_uncertainty', False),
+                precision_source=getattr(args, 'round_by', 'u_c'),
             )
+
+        if do_print and getattr(data, 'computation_errors', None):
+            import sys
+            from utils import color_print
+
+            print(f"\n{color_print.RED}Chyby ve vypoctech (radky obsahuji NaN):{color_print.END}", file=sys.stderr)
+            for err in data.computation_errors:
+                print(f"  {color_print.RED}-{color_print.END} {err}", file=sys.stderr)
 
         export_csv = getattr(args, 'export_csv', None) if not isinstance(args, dict) else None
         if export_csv and not dry_run:

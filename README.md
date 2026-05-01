@@ -169,6 +169,8 @@ Globální přepínače jsou dostupné pro každou metodu:
 
 ### 2.3 Vstupní formáty
 
+> Kompletní reference se schematy, příklady a edge cases je v [`docs/input_formats.md`](docs/input_formats.md). Tato sekce je rychlý přehled.
+
 Všechny metody přijímající soubor (`-i`) automaticky rozpoznávají příponu:
 
 | Přípona | Formát | Kdo používá |
@@ -189,7 +191,40 @@ typ_b = 0.01                        # přímý u_B v deklarované jednotce
 unit = "A"
 hodnoty = [0.50, 0.51, 0.49]
 typ_b = { a = 0.005, distribuce = "rovnomerne" }   # polovina intervalu + rozdělení
+
+[veliciny.d]
+unit = "mm"
+hodnoty = [3.42, 3.41, 3.43]
+typ_b = { a = 10, unit = "um", distribuce = "rovnomerne" }   # chyba v jiné jednotce — parser přepočte
 ```
+
+Volitelný klíč `typ_b.unit` umožňuje uvést chybu v jiné jednotce, než má veličina (musí jít o stejnou fyzikální veličinu — `mm` vs `um` ano, `mm` vs `s` chyba). Hodnota `a` se interně přenásobí převodním faktorem před aplikací rozdělení. Pokud `unit` v `typ_b` chybí, předpokládá se stejná jednotka jako u veličiny.
+
+#### Derivované sloupce — `[vypocty.<jméno>]`
+
+Pro výpočet odvozené veličiny per řádek (např. `R = U/I`) lze v TOMLu přidat sekce `[vypocty.<jméno>]`. Vzorec se vyhodnotí pro každý řádek dosazením hodnot odpovídajících veličin a výsledek se přidá jako další sloupec do LaTeX tabulky.
+
+```toml
+[veliciny.U]
+unit = "V"
+hodnoty = [1.20, 1.21, 1.19, 1.22]
+
+[veliciny.I]
+unit = "A"
+hodnoty = [0.50, 0.51, 0.49, 0.52]
+
+[vypocty.R]
+unit = "Ohm"
+vzorec = "U / I"
+
+[vypocty.P]
+unit = "W"
+vzorec = "U * I"
+```
+
+Vzorec se parsuje přes SymPy, takže umí běžné funkce (`sin`, `cos`, `exp`, `sqrt`, `log`). Identifikátory ve vzorci musí odpovídat jménům veličin (bez jednotky); chyba `v setu chybi promenne ['Q']` znamená, že vzorec odkazuje na neexistující veličinu.
+
+**Chování při dělení nulou nebo mimo definiční obor:** výsledek řádku je `NaN`, v LaTeX tabulce se zobrazí jako `-`, a po dokončení se na `stderr` vypíše seznam problematických řádků (`Vypocet 'R', radek 2: deleni nulou`). Caption odvozeného sloupce ukazuje průměr přes validní řádky ve formátu `$R_{\mathrm{prum}} = X\,\mathrm{Ohm}$` (bez chyby — nejistoty se u derivovaných veličin nepropagují, na to slouží metoda `nc`/`neprima_chyba`).
 
 Pro `nc` (nepřímou chybu) je TOML schéma rozšířené o sekce `[funkce.<jméno>]` s formulemi a konstantami — viz oddíl 5.2.
 
@@ -350,9 +385,12 @@ VELIČINA
 | `--si-normalize` | Převede jednotky na základní SI (mA → A, kV → V, MΩ → Ω) |
 | `--convert-units` | Převede jednotky dle JSON: `'{"I":"A","U":"mV"}'` |
 | `-ru`, `--rel-uncertainty` | Doplní relativní nejistotu (`δ = u_c/|μ|·100 %`) do captionu LaTeX tabulky. Vyžaduje `-lt`. |
+| `--round-by` | Podle které chyby zaokrouhlovat hodnoty v LaTeX tabulce: `u_c` (kombinovaná, výchozí), `u_a` (jen typ A — střední kvadratická chyba), `u_b` (jen typ B — chyba přístroje). Vyžaduje `-lt`. |
 | `--output-format` | `text` (výchozí) nebo `json` |
 
 Podporované SI prefixy: y, z, a, f, p, n, μ, u, m, c, d, da, h, k, M, G, T, P, E, Z, Y.
+
+**Úhlové jednotky:** `rad` (základní), `deg` / `°` (= π/180 rad). Tool je sjednocuje na základní jednotku `rad`, takže `--convert-units '{"theta":"deg"}'` převede radiány na stupně, `typ_b = { a = 1, unit = "deg" }` u veličiny v `rad` se interně přepočte. Prefixy fungují (`mrad`, `μrad`, `mdeg`, ...).
 
 Rozdělení pro nejistotu typu B jsou uvedena v Tabulce 1.
 

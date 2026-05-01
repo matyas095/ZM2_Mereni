@@ -10,6 +10,7 @@ class Measurement:
     u_B: float
     removed_values: list
     original_n: int
+    is_derived: bool = False
 
     def __init__(self, name: str, values: Sequence[int | float], u_B: float = 0.0) -> None:
         self.name = name
@@ -48,17 +49,31 @@ class Measurement:
 
     @property
     def precision(self) -> int:
-        if self._precision is None:
-            if self.u_c == 0:
-                self._precision = 2
-            else:
-                for p in range(3):
-                    if round(abs(self.u_c), p) != 0:
-                        self._precision = p
-                        break
-                else:
-                    self._precision = 2
-        return self._precision
+        return self.precision_for("u_c")
+
+    def precision_for(self, source: str = "u_c") -> int:
+        """Pocet des. mist odvozeny z chyby zvoleneho typu (u_c / u_A / u_B).
+
+        Pro `u_B = 0` (typ B nedeklarovan) padaji volajici zpet na `u_c`,
+        jinak by precision = 2 z fallbacku skryval skutecny rozsah dat.
+        """
+        key = source.lower().replace("_", "")
+        if key in ("uc", "c"):
+            err = self.u_c
+        elif key in ("ua", "a"):
+            err = self.u_A
+        elif key in ("ub", "b"):
+            err = self.u_B
+            if err == 0:
+                err = self.u_c
+        else:
+            raise ValueError(f"Neznamy zdroj precision: {source!r} (povolene: u_c, u_A, u_B)")
+        if err == 0:
+            return 2
+        for p in range(3):
+            if round(abs(err), p) != 0:
+                return p
+        return 2
 
     def expanded_uncertainty(self, k: int = 2) -> float:
         return k * self.u_c
@@ -199,3 +214,53 @@ class Measurement:
 
     def __repr__(self) -> str:
         return f"Measurement({self.name}, n={self.n}, mean={self.mean:.4g}, u_c={self.u_c:.4g})"
+
+
+class DerivedMeasurement(Measurement):
+    """Measurement vznikla aplikaci vzorce na hodnoty jine veliciny (per-radek).
+
+    Ignoruje NaN hodnoty pri vypoctu mean/u_A — ty vznikaji u radku, kde vzorec
+    selhal (typicky deleni nulou). Nema u_B (chyba pristroje neni definovana
+    pro derivovane veliciny).
+    """
+
+    is_derived: bool = True
+
+    @property
+    def mean(self) -> float:
+        # Pokud byla spoctena propagovana hodnota f(<x>, <y>, ...) — tu vrat.
+        # Jinak fallback na nanmean per-radkovych vysledku.
+        mp = getattr(self, "mean_propagated", None)
+        if mp is not None and math.isfinite(mp):
+            return mp
+        if self._mean is None:
+            arr = np.asarray(self.values, dtype=np.float64)
+            valid = arr[~np.isnan(arr)]
+            self._mean = float(np.mean(valid)) if len(valid) > 0 else float("nan")
+        return self._mean
+
+    @property
+    def u_c(self) -> float:
+        # Nejistota propagovana pres parcialni derivace (GUM), pokud byla spoctena.
+        # Jinak fallback na statisticke u_A z per-radkovych vysledku.
+        uc = getattr(self, "uc_propagated", None)
+        if uc is not None and math.isfinite(uc):
+            return uc
+        if self._u_c is None:
+            self._u_c = math.sqrt(self.u_A**2 + self.u_B**2)
+        return self._u_c
+
+    @property
+    def u_A(self) -> float:
+        if self._u_A is None:
+            arr = np.asarray(self.values, dtype=np.float64)
+            valid = arr[~np.isnan(arr)]
+            n = len(valid)
+            if n < 2:
+                self._u_A = 0.0
+            else:
+                # Pouzij stat. mean z dat, ne propagovany (u_A je statistika z hodnot).
+                stat_mean = float(np.mean(valid))
+                odchylka = float(np.sum((valid - stat_mean) ** 2))
+                self._u_A = math.sqrt(odchylka / (n * (n - 1)))
+        return self._u_A

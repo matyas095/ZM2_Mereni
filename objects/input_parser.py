@@ -158,6 +158,7 @@ class InputParser:
             if values is None:
                 raise ValueError(f"Velicina '{name}' nema klic 'hodnoty'")
 
+            unit = vinfo.get("unit")
             tb = vinfo.get("typ_b")
             if tb is None:
                 u_B = u_B_map.get(name, 0.0)
@@ -165,6 +166,17 @@ class InputParser:
                 u_B = float(tb)
             elif isinstance(tb, dict):
                 a = float(tb.get("a", 0.0))
+                tb_unit = tb.get("unit")
+                if tb_unit is not None:
+                    if unit is None:
+                        raise ValueError(
+                            f"Velicina '{name}': typ_b.unit='{tb_unit}' vyzaduje, aby velicina mela deklarovany 'unit'."
+                        )
+                    from objects.units import convert_factor
+                    try:
+                        a = a * convert_factor(tb_unit, unit)
+                    except ValueError as e:
+                        raise ValueError(f"Velicina '{name}': typ_b.unit nelze prevest na jednotku veliciny — {e}")
                 dist = str(tb.get("distribuce", "rovnomerne")).strip()
                 if dist == "rovnomerne":
                     u_B = a / math.sqrt(3)
@@ -177,9 +189,27 @@ class InputParser:
             else:
                 raise ValueError(f"Velicina '{name}': typ_b musi byt cislo nebo dict.")
 
-            unit = vinfo.get("unit")
             display_name = f"{name} [{unit}]" if unit else name
             ms.add(Measurement(display_name, list(values), u_B=u_B))
+
+        for vname, vinfo in cfg.get("vypocty", {}).items():
+            if not isinstance(vinfo, dict):
+                raise ValueError(f"Vypocet '{vname}': sekce musi byt dict, dostal {type(vinfo).__name__}")
+            formula = vinfo.get("vzorec")
+            if not formula:
+                raise ValueError(f"Vypocet '{vname}': chybi povinny klic 'vzorec'")
+            unit = vinfo.get("unit", "")
+            constants = vinfo.get("konstanty", {})
+            if not isinstance(constants, dict):
+                raise ValueError(
+                    f"Vypocet '{vname}': 'konstanty' musi byt dict, dostal {type(constants).__name__}"
+                )
+            ms.add_derived(
+                name=str(vname),
+                unit=str(unit),
+                formula=str(formula),
+                constants={str(k): float(v) for k, v in constants.items()},
+            )
 
         return ms
 

@@ -34,5 +34,5 @@ $ python3 main.py arit<TAB>
 # → python3 main.py aritmeticky_prumer
 
 $ python3 main.py aritmeticky_prumer --<TAB>
-# → --input  --latextable  --typ-b  --outliers  --caption  ...
+# → --input  --latextable  --typ-b  --outliers  --caption  --round-by  ...
 ```

@@ -1,6 +1,9 @@
 """SI jednotky a převody."""
 
+import math
 import re
+
+DEG_TO_RAD = math.pi / 180.0
 
 # SI prefixy a jejich násobky
 SI_PREFIXES = {
@@ -84,12 +87,23 @@ def parse_unit(unit_str: str):
     """Vrátí (factor_to_base, base_unit) pro danou jednotku.
 
     Příklady:
-        'mA' -> (1e-3, 'A')
-        'kΩ' -> (1e3, 'Ω')
-        's'  -> (1.0, 's')
-        'Hz' -> (1.0, 'Hz')
-        'foo'-> (1.0, 'foo')  (neznámé)
+        'mA'  -> (1e-3, 'A')
+        'kΩ'  -> (1e3, 'Ω')
+        's'   -> (1.0, 's')
+        'Hz'  -> (1.0, 'Hz')
+        'deg' -> (π/180, 'rad')      # uhly se sjednocuji na rad
+        '°'   -> (π/180, 'rad')
+        'mdeg'-> (π/180000, 'rad')
+        'foo' -> (1.0, 'foo')         (neznámé)
     """
+    factor, base = _parse_unit_raw(unit_str)
+    # Sjednoceni uhlovych jednotek na rad — '°' (deg) je jen alternativni zapis.
+    if base == "°":
+        return factor * DEG_TO_RAD, "rad"
+    return factor, base
+
+
+def _parse_unit_raw(unit_str: str):
     if not unit_str or not unit_str.strip():
         return 1.0, unit_str
 

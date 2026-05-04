@@ -593,4 +593,13 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "Release ${{ github.ref_name }} dokončen — Statistika + Grafy (Linux + Windows + macOS, AppImage, Docker)"
+          username: ZM2 Release Bot
+          avatar_url: https://github.com/matyas095.png
+          color: 0x5865F2
+          title: "ZM2_Mereni ${{ github.ref_name }} released"
+          description: |
+            **Statistika + Grafy** — Linux, Windows, macOS, AppImage, Docker
+
+            [Stáhnout na GitHubu](https://github.com/matyas095/ZM2_Mereni/releases/tag/${{ github.ref_name }})
+          url: https://github.com/matyas095/ZM2_Mereni/releases/tag/${{ github.ref_name }}
+          nocontext: true

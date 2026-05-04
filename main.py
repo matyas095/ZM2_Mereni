@@ -12,8 +12,8 @@ else:
 sys.path = [BASE_DIR, os.path.join(BASE_DIR, "statisticke_vypracovani")] + sys.path
 from statisticke_vypracovani.base import Method
 
-# CURRENT_VERSION = "v0.6";
-CURRENT_VERSION = "v0.6"
+# CURRENT_VERSION = "v0.5";
+CURRENT_VERSION = "v0.5"
 VERSION_URL = "https://api.github.com/repos/matyas095/ZM2_Mereni/releases/latest"
 
 

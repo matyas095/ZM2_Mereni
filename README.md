@@ -131,6 +131,7 @@ Každá metoda má krátký alias pro rychlejší psaní:
 | `join_tables` | `jt` |
 | `format_table` | `ft` |
 | `extract_table` | `et` |
+| `tabulka` | `tab` |
 | `graf` | `g` |
 | `graf_interval` | `gi` |
 | `histogram` | `hist` |
@@ -425,27 +426,29 @@ python3 main.py neprima_chyba -i mereni.toml
 
 #### Výstup
 
-Pro každou funkci v sekci `FUNKCE` vypíšeme až pět řádků:
+Pro každou funkci v sekci `FUNKCE` (nebo `[funkce.*]` v TOML) vypíšeme blok ve třech částech: **vzorec → chyba (symbolicky + numericky) → hodnota**.
 
 ```
-u
-├──LaTeX          = $u = \frac{m}{V}$
-├──Hodnota        = 2.750 * 10^-3 (0.002749883…)
-├──Chyba          = 6.857 * 10^-6 (6.856844…)
-├──Výsledek       = (2750 ± 7) kg*m^-3
-├──Originál       = (0.00275 ± 0.00001) g*mm**-3
-└──Rel. nejistota = 0.249 %
+R
+├──Vzorec     = t / log(U_0 / U)
+├──LaTeX      = $R = \frac{t}{\log{\left(\frac{U_{0}}{U} \right)}}$
+├──σ_R        = sqrt(sigma_t**2/log(U_0/U)**2 + sigma_U**2*t**2/(U**2*log(U_0/U)**4))
+│  LaTeX      = $\sigma_{R} = \sqrt{\frac{\sigma_{t}^{2}}{\log{(U_{0}/U)}^{2}} + \frac{\sigma_{U}^{2} t^{2}}{U^{2} \log{(U_{0}/U)}^{4}}}$
+├──Chyba      = 1.914 * 10^-1 (0.1914414601144071)
+├──Rel. chyba = 8.82 %
+└──Hodnota    = (2.17 ± 0.19) Ohm     (2.171 * 10^0 ± 1.914 * 10^-1 Ohm)
 ```
 
-- **`LaTeX`** — zdrojový tvar funkce ve formátu LaTeX (přes `sympy.latex`), připravený k vložení do protokolu.
-- **`Hodnota`** — střední hodnota funkce (vyhodnocená v aritmetických průměrech vstupů).
-- **`Chyba`** — propagovaná nejistota dle GUM `σ_w = √(Σᵢ (∂w/∂xᵢ · σ_xᵢ)²)`.
-- **`Výsledek`** — `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6: **vždy 2 signifikantní číslice na nejistotě**, hodnota zaokrouhlená na stejné desetinné místo. Tři automatické přeformátování:
+- **`Vzorec`** — surový tvar funkce, jak je v zápisu (před parsem). Užitečné pro kontrolu, že parser dostal to, co měl.
+- **`LaTeX`** funkce — zdrojový tvar funkce ve formátu LaTeX (přes `sympy.latex`), připravený k vložení do protokolu.
+- **`σ_<funkce>`** — **symbolický GUM výraz** pro propagovanou nejistotu, `σ_R = √(Σᵢ (∂R/∂xᵢ · σ_xᵢ)²)`, s dosazenými parciálními derivacemi.
+- **`LaTeX`** chyby — `\sigma_{R} = \sqrt{...}` ve formátu LaTeX (paste-ready do protokolu).
+- **`Chyba`** — numerická propagovaná nejistota.
+- **`Rel. chyba`** — relativní nejistota `δ = σ/|μ| × 100 %`. Vrací `—`, pokud je střední hodnota nulová.
+- **`Hodnota`** — `(hodnota ± nejistota)` zaokrouhlené dle GUM §7.2.6: **vždy 2 signifikantní číslice na nejistotě**, hodnota zaokrouhlená na stejné desetinné místo. Za zvýrazněným tvarem následuje v závorce originál v deklarované jednotce. Tři automatické přeformátování:
     1. **SI převod složené jednotky** (`g·mm⁻³ → kg·m⁻³`) — použije se, pokud převedená forma neobsahuje `× 10^N` a má ≤ 2 desetinná místa.
     2. **SI prefix rescaling jednoduché jednotky** (`m → mm`, `g → mg`, `s → ns`, …) — použije se, pokud nejistota potřebuje > 2 desetinná místa nebo je ≥ 1000 v původní jednotce. Hledá se nejmenší násobek 1000 takový, aby výsledná nejistota měla 0–2 desetinných míst.
     3. **Plain vs. scientific notation** — plain notation pro hodnoty v rozsahu `[10⁻², 10⁸)`, jinak `× 10^N`.
-- **`Originál`** — `(hodnota ± nejistota)` v původní deklarované jednotce (bez rescalingu i SI převodu). Užitečné pro konzistentní reportování napříč funkcemi, které sdílí rodinu jednotek (např. všechny hmotnosti v `g`). Tento řádek se objeví jen pokud má funkce anotaci `[jednotka]`.
-- **`Rel. nejistota`** — relativní nejistota `δ = σ/|μ| × 100 %`. Užitečné pro porovnávání precizností napříč různými veličinami v protokolu. Vrací `—` pokud je střední hodnota nulová.
 
 #### Vstupní formát `.txt` (indentovaný blokový zápis)
 
@@ -569,21 +572,46 @@ Lineární regrese: y = a·x + b
 
 ### 5.5 `derivace`
 
-Numerická derivace dat metodou centrálních diferencí (funkce `numpy.gradient`). Užitečné například pro výpočet rychlosti ze záznamu polohy.
+Dva režimy podle přípony vstupu:
+
+- **Numerický** (`.txt`, `.xlsx`) — derivace dat metodou centrálních diferencí (funkce `numpy.gradient`). Užitečné například pro výpočet rychlosti ze záznamu polohy.
+- **Symbolický** (`.toml`) — pro každou funkci `[funkce.*]` spočte parciální derivace podle všech proměnných z `[veliciny.*]`, které ve vzorci vystupují, a vypíše je v sympy tvaru i v LaTeXu.
 
 ```bash
+# Numerický režim
 python3 main.py derivace -i poloha.txt
 python3 main.py derivace -i data.txt -x t -y x -o rychlost
+
+# Symbolický režim — TOML stejného tvaru jako u neprima_chyba
+python3 main.py derivace -i mereni.toml
 ```
 
 | Argument | Popis |
 |----------|-------|
-| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný) |
-| `-x`, `--x-col` | Nezávislá proměnná (výchozí: první sloupec) |
-| `-y`, `--y-col` | Závislá proměnná (výchozí: druhý sloupec) |
-| `-o`, `--output` | Výstupní soubor bez přípony |
+| `-i`, `--input` | Cesta ke vstupnímu souboru (povinný); `.txt`/`.xlsx` → numerický režim, `.toml` → symbolický |
+| `-x`, `--x-col` | Nezávislá proměnná (jen numerický režim; výchozí: první sloupec) |
+| `-y`, `--y-col` | Závislá proměnná (jen numerický režim; výchozí: druhý sloupec) |
+| `-o`, `--output` | Výstupní soubor bez přípony (jen numerický režim) |
 
-Výstupní soubor je ve formátu `VELIČINA=data` a ukládá se do adresáře `outputs/`.
+#### Numerický výstup
+
+Soubor ve formátu `VELIČINA=data` v adresáři `outputs/`.
+
+#### Symbolický výstup
+
+Pro každou funkci `[funkce.<nazev>]` vypíšeme vzorec, jeho LaTeX a po jedné parciální derivaci (sympy tvar + LaTeX) za každou proměnnou z `[veliciny.*]`, která ve vzorci vystupuje. Symboly uvedené v `konstanty = { … }` se nederivují. Pokud `[veliciny.*]` chybí, derivuje se podle všech proměnných ve vzorci, které nejsou konstantami.
+
+```
+R
+├──Vzorec      = t / log(U_0 / U)
+├──LaTeX       = $R = \frac{t}{\log{\left(\frac{U_{0}}{U} \right)}}$
+├──Derivuji dle = U, t
+├──Konstanty   = U_0=300
+├──∂R/∂U = t/(U*log(U_0/U)**2)
+│   └─LaTeX: \frac{t}{U \log{\left(\frac{U_{0}}{U} \right)}^{2}}
+└──∂R/∂t = 1/log(U_0/U)
+    └─LaTeX: \frac{1}{\log{\left(\frac{U_{0}}{U} \right)}}
+```
 
 ---
 
@@ -706,7 +734,55 @@ python3 main.py extract_table -i mereni.tex -o data --keep-units
 
 ---
 
-### 5.9 `convert_soubor`
+### 5.9 `tabulka`
+
+LaTeX tabulka z TOML. Sloupce = každá `[veliciny.*]` + (volitelně) hodnota z `[funkce.*]` dosazená po řádcích (1-na-1). S přepínačem `-lt` přidá do popisku tabulky `mean ± nejistota` per sloupec — chování ekvivalentní `aritmeticky_prumer -lt`.
+
+```bash
+# jen tabulka hodnot (a případných hodnot ze vzorce po řádcích)
+python3 main.py tabulka -i mereni.toml
+
+# přidá $X = (mean ± u_c)\,[unit]$ do popisku tabulky
+python3 main.py tabulka -i mereni.toml -lt
+
+# vlastní popisek a label
+python3 main.py tabulka -i mereni.toml -c "Měření odporu" -l "tab:R"
+```
+
+| Argument | Popis |
+|----------|-------|
+| `-i`, `--input` | TOML soubor (povinný) |
+| `-lt`, `--latextable` | Přidá `mean ± nejistotu` (a případně relativní nejistotu) do popisku |
+| `--rel-uncertainty` | S `-lt` doplní k popisku relativní nejistotu `δ_X` |
+| `-o`, `--output` | Výstupní `.tex` soubor bez přípony (výchozí: `tabulka_output`) |
+| `-c`, `--caption` | Vlastní popisek tabulky |
+| `-l`, `--label` | Vlastní LaTeX label |
+
+#### Vstupní TOML
+
+```toml
+[veliciny.t]
+hodnoty = [10.0, 10.1, 9.9, 10.2, 9.95]
+unit = "s"
+
+[veliciny.U]
+hodnoty = [3.0, 3.05, 2.98, 3.02, 3.01]
+unit = "V"
+
+[funkce.R]                                # volitelné — vytvoří další sloupec po řádcích
+vzorec = "t / log(U_0 / U)"
+unit = "Ohm"
+konstanty = { U_0 = 300 }
+```
+
+Výstup je `.tex` soubor v `latex_output/`. Bez `-lt` jen `\begin{tabular}` blok s hodnotami; s `-lt` se do popisku připojí `$X = (mean \pm u_c)\,[unit]$` za každý sloupec (stejné chování jako `aritmeticky_prumer -lt`).
+
+> [!TIP]
+> TOML formát je sdílený s `neprima_chyba` a `derivace`. Stejný soubor lze pustit přes `tabulka` (tabulka), `derivace` (symbolické derivace) i `neprima_chyba` (propagace chyby) bez úprav.
+
+---
+
+### 5.10 `convert_soubor`
 
 Konverze tabulkového souboru (TSV s hlavičkou a jednotkami) do formátu `PROMĚNNÁ=data`.
 

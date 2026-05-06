@@ -105,6 +105,20 @@ class NeprimaChyba(Method):
             y = parse_expr(rce, local_dict=parse_dict, transformations=transformations)  # type: ignore
             latex_str = latex(y)  # LaTeX zdroj pro vložení do protokolu
             derivatives = [y.diff(x) for x in sym_map]
+
+            # GUM symbolicky: sigma_R = sqrt(sum_i (dR/dx_i)^2 * sigma_x_i^2)
+            from sympy import sqrt as _sqrt, Symbol as _Symbol, Add as _Add
+            sigma_syms = {vname: _Symbol(f"sigma_{vname}", positive=True) for vname in variables}
+            if variables:
+                _terms = [
+                    (y.diff(sym_map[vname]) * sigma_syms[vname]) ** 2 for vname in variables
+                ]
+                sigma_expr = _sqrt(_Add(*_terms))
+            else:
+                sigma_expr = _sqrt(0)
+            sigma_latex_str = latex(sigma_expr)
+            sigma_str = str(sigma_expr)
+
             variablesNEW = variables + list(local_const_dict.keys())
             f = lambdify(variablesNEW, derivatives, 'numpy')
             f_val = lambdify(variablesNEW, y, 'numpy')  # samotná funkce — pro střední hodnotu
@@ -124,16 +138,23 @@ class NeprimaChyba(Method):
                 ch_arr = np.asarray(ch, dtype=np.float64)
                 sig_R = float(np.sqrt(np.sum((clean_results * ch_arr) ** 2)))
                 mean_R = float(np.asarray(f_val(*toEval), dtype=np.float64))
-                resulte.append((name_rce, sig_R, return_Cislo_Krat_10_Na(sig_R), mean_R, latex_str, unit_str))
+                resulte.append((
+                    name_rce, sig_R, return_Cislo_Krat_10_Na(sig_R), mean_R,
+                    latex_str, unit_str, rce, sigma_str, sigma_latex_str,
+                ))
 
-        for k, cislo, na_desatou, mean_R, latex_str, unit_str in resulte:
+        for k, cislo, na_desatou, mean_R, latex_str, unit_str, rce_str, sigma_str_v, sigma_latex_v in resulte:
             print(color_print.BOLD + k + color_print.END)
-            print(f"├──{color_print.UNDERLINE}LaTeX{color_print.END}    = ${k} = {latex_str}$")
-            print(
-                f"├──{color_print.UNDERLINE}Hodnota{color_print.END}  = "
-                f"{return_Cislo_Krat_10_Na(mean_R)} ({mean_R})"
-            )
-            print(f"├──{color_print.UNDERLINE}Chyba{color_print.END}    = {na_desatou} ({cislo})")
+
+            # 1) Vzorec
+            print(f"├──{color_print.UNDERLINE}Vzorec{color_print.END}     = {rce_str}")
+            print(f"├──{color_print.UNDERLINE}LaTeX{color_print.END}      = ${k} = {latex_str}$")
+
+            # 2) Chyba — GUM symbolicky + numericky
+            print(f"├──{color_print.UNDERLINE}σ_{k}{color_print.END}        = {sigma_str_v}")
+            print(f"│  {color_print.UNDERLINE}LaTeX{color_print.END}      = $\\sigma_{{{k}}} = {sigma_latex_v}$")
+            print(f"├──{color_print.UNDERLINE}Chyba{color_print.END}      = {na_desatou} ({cislo})")
+
             # Relativni nejistota = |sigma / mean| * 100 % (univerzalni, bez ohledu na jednotku).
             import math as _math
 
@@ -145,9 +166,10 @@ class NeprimaChyba(Method):
                     rel_str = f"{rel_pct:.2e} %"
             else:
                 rel_str = "—"
+            print(f"├──{color_print.UNDERLINE}Rel. chyba{color_print.END} = {rel_str}")
 
+            # 3) Hodnota (mean) — na konci, vc. SI rescale a jednotky
             if unit_str:
-                # SI prefix rescaling jednoduche jednotky aby sigma mela 0-2 desetinna mista.
                 m_resc, s_resc, u_resc = rescale_simple_unit(mean_R, cislo, unit_str)
                 resc_disp = gum_round(m_resc, s_resc)
                 try:
@@ -159,14 +181,17 @@ class NeprimaChyba(Method):
                         chosen, chosen_unit = resc_disp, u_resc
                 except Exception:
                     chosen, chosen_unit = resc_disp, u_resc
-                print(f"├──{color_print.UNDERLINE}Výsledek{color_print.END} = {chosen} {chosen_unit}")
-                orig_unit_disp = gum_round(mean_R, cislo)
-                print(f"├──{color_print.UNDERLINE}Originál{color_print.END} = {orig_unit_disp} {unit_str}")
-                print(f"└──{color_print.UNDERLINE}Rel. nejistota{color_print.END} = {rel_str}")
+                print(
+                    f"└──{color_print.UNDERLINE}Hodnota{color_print.END}    = "
+                    f"{chosen} {chosen_unit}     "
+                    f"({return_Cislo_Krat_10_Na(mean_R)} ± {na_desatou} {unit_str})"
+                )
             else:
                 orig_disp = gum_round(mean_R, cislo)
-                print(f"├──{color_print.UNDERLINE}Výsledek{color_print.END} = {orig_disp}")
-                print(f"└──{color_print.UNDERLINE}Rel. nejistota{color_print.END} = {rel_str}")
+                print(
+                    f"└──{color_print.UNDERLINE}Hodnota{color_print.END}    = "
+                    f"{orig_disp}     ({return_Cislo_Krat_10_Na(mean_R)} ± {na_desatou})"
+                )
             print("-" * 100)
 
         return resulte

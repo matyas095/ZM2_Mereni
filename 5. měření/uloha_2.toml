@@ -1,0 +1,23 @@
+[veliciny.l]
+unit = "cm"
+hodnoty = [28, 32, 36, 40, 44, 48, 52, 56]   # kovová
+
+[veliciny.E_1]
+unit = "Lux"
+hodnoty = [12, 10, 9, 8, 7]
+
+[veliciny.E_2]
+unit = "Lux"
+hodnoty = [10, 8, 8, 7, 7]
+
+[veliciny.E_3]
+unit = "Lux"
+hodnoty = [8, 7, 7, 6, 6]
+
+[veliciny.E_4]
+unit = "Lux"
+hodnoty = [7, 6, 6, 5, 5]
+
+[veliciny.E_5]
+unit = "Lux"
+hodnoty = [5, 5, 4, 4, 4]

@@ -1,0 +1,7 @@
+[veliciny.p]
+unit = "cm"
+hodnoty = [15, 13.1, 14.9, 14.5, 15.5] # předmětová vzdálenost
+
+[veliciny.o]
+unit = "cm"
+hodnoty = [12.5, 20.3, 30.0, 40.0, 42.8, 23.2] # obrazová vzdálenost

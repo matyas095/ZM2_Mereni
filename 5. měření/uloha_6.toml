@@ -1,0 +1,7 @@
+[veliciny.a]
+unit = "cm"
+hodnoty = [64.5, 40.4, 44.0, 64.3, 48.0]
+
+[veliciny.b]
+unit = "cm"
+hodnoty = [81.0, 94.6, 75.6, 81.2, 72.4]

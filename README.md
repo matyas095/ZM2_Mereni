@@ -14,6 +14,7 @@ Statistické zpracování se nachází [zde](https://github.com/matyas095/ZM2_Me
 - [Měření 10.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie) - 2. 4. 26
 - [Měření 1.](#měření-10---vzduchová-dráha-2-newtonův-zákon-a-zákon-o-zachování-mechanické-energie)  - 9. 4. 26
 - [Měření 3.](#měření-3---měření-hustot-kapalných-a-pevných-látek) -  23. 4. 26
+- [Měření 5.](#měření-5---fotometrie-a-optika) - 7. 5. 26
 
 ## Zápis měření
 
@@ -43,3 +44,6 @@ Všechny výpočty dělány ručně (kalkulátor incident)
 ### Měření 3 - Měření hustot kapalných a pevných látek
 - Výpočty přes [Releases](https://github.com/matyas095/ZM2_Mereni/releases)
 - Grafy přes SW v prvním bodě.
+
+### Měření 5 - Fotometrie a optika
+- Přidány údaje dle úloh do *.toml souborů

@@ -1,14 +1,14 @@
 [veliciny.M_1]
 unit = "g"
-hodnoty = [24.6567, 24.6566, 24.6568]   # samotný pyknometr
+hodnoty = [24.657, 24.6565, 24.6566]   # samotný pyknometr
 
 [veliciny.M_2]
 unit = "g"
-hodnoty = [44.96, 44.97, 44.99, 44.99]   # líh
+hodnoty = [44.9609, 44.9744, 44.9915, 44.9934]   # líh
 
 [veliciny.M_3]
 unit = "g"
-hodnoty = [49.68, 49.68, 49.68, 49.68]   # voda
+hodnoty = [49.6762, 49.6816, 49.6842, 49.6754]   # voda
 
 [funkce.rho_vztlak]
 vzorec = "(M_2 - M_1) / (M_3 - M_1) * rho_v"

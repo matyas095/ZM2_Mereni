@@ -1,6 +1,6 @@
 [veliciny.m_1]
 unit = "g"
-hodnoty = [35.6341, 35.7142, 35.7142]   # kovová
+hodnoty = [35.7141, 35.7142, 35.7142]   # kovová
 
 [veliciny.m_2]
 unit = "g"

@@ -8,12 +8,20 @@ import math;
 import matplotlib.pyplot as plt;
 import os;
 import sys;
+import shutil
 import tomllib;
 
 parent_dir = Path(__file__).resolve().parent;
 script_dir = parent_dir / "grafy";
 script_dir.mkdir(parents=True, exist_ok=True);
 
+
+def print_centered_header(text, filler="="):
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns;
+
+    padded_text = f" {text} " if text else "";
+
+    print(padded_text.center(terminal_width, filler));
 
 
 def return_Cislo_Krat_10_Na(x):
@@ -23,83 +31,58 @@ def return_Cislo_Krat_10_Na(x):
     return f"{zaklad:.3f} * 10^{exponent}";
 
 
+def plt_Legend():
+    handles, labels = plt.gca().get_legend_handles_labels();
 
-def doGraph_SCATTER(x_Range, y_Range, x_Key, y_Key, title):
-    plt.figure(figsize=(9, 6));
-    # plt.errorbar(t, ln_U, yerr=chyba_ln_U, fmt='o', capsize=3, color='darkred', label='Chyba měření');
-    # plt.plot(t, fit(t, k, q), 'b-',
-    #          label=f'Fit přímky ($k={return_Cislo_Krat_10_Na(k)}$, $q={return_Cislo_Krat_10_Na(q)}$)');
-    # plt.xticks(x);
-    plt.scatter(x_Range, y_Range, color='blue', s=10, label='Naměřená data');
+    data_points = [];
+    fits = [];
+    intersections = [];
 
-    plt.xlabel(f'{x_Key}');
-    plt.ylabel(f'{y_Key}');
-    plt.title(title);
-    plt.legend();
-    plt.grid(True, alpha=0.3);
+    for h, l in zip(handles, labels):
+        if hasattr(h, 'lines') or "Container" in type(h).__name__:
+            data_points.append((h, l));
+        elif "PathCollection" in type(h).__name__ or "Průsečík" in l:
+            intersections.append((h, l));
+        else:
+            fits.append((h, l));
 
+    sorted_pairs = data_points + fits + intersections;
 
-def save_Graph_And_Leave(nameFile):
-    plt.savefig(f'{script_dir}/{nameFile}.svg', format='svg', bbox_inches='tight');
-    print(f"Graf se jménem {nameFile} se uložil do souboru:\n└──{script_dir}/{nameFile}.svg");
-    # plt.show();
-    plt.close();
+    ordered_handles = [pair[0] for pair in sorted_pairs];
+    ordered_labels = [pair[1] for pair in sorted_pairs];
 
-def cursed(T_1_Range, T_2_Range, x_Range):
-    # Použijeme lineární fit pro T^2 (protože T^2 = (4*pi^2 / g) * l)
-    # Tím získáme model matematického kyvadla
-    T1_kvadrat = T_1_Range ** 2
-    T2_kvadrat = T_2_Range ** 2
+    plt.legend(ordered_handles, ordered_labels);
 
-    # Proložíme přímky: y = k*x + q
-    p1 = np.polyfit(x_Range, T1_kvadrat, 1)
-    p2 = np.polyfit(x_Range, T2_kvadrat, 1)
+def monte_Carl(p1, p2, chyby_p1, chyby_p2, x_Range, x_prusecik):
+    N_simulaci = 1000;
+    simulovane_pruseciky = [];
 
-    # Nalezení průsečíku přímek (k1*x + q1 = k2*x + q2)
-    # x = (q2 - q1) / (k1 - k2)
-    x_prusecik = (p2[1] - p1[1]) / (p1[0] - p2[0])
+    for _ in range(N_simulaci):
+        p1_nahodny = np.random.normal(p1, chyby_p1)
+        p2_nahodny = np.random.normal(p2, chyby_p2)
 
-    # Dosadíme x zpět do libovolné přímky a odmocníme, abychom dostali periodu T
-    y_prusecik_kvadrat = np.polyval(p1, x_prusecik)
-    y_prusecik = np.sqrt(y_prusecik_kvadrat)
+        # Spočítáme průsečík pro tuto simulaci
+        p_diff_nahodny = p1_nahodny - p2_nahodny
+        roots_nahodny = np.roots(p_diff_nahodny)
 
-    # --- VÝPOČET GRAVITAČNÍHO ZRYCHLENÍ g ---
-    # V průsečíku platí: T = 2 * pi * sqrt(d / g)
-    # Kde d je vzdálenost břitů. V programu z prvního screenshotu byla d = 0.8 m.
-    # POZOR: x_Range máš v TOML v [cm], musíme převést d na [cm], tedy d = 80 cm
-    d_cm = 80.0
-    g_vypoctene = (4 * np.pi ** 2 * d_cm) / y_prusecik_kvadrat
-    # Převod g z cm/s^2 na m/s^2
-    g_vypoctene_ms2 = g_vypoctene / 100
+        pruseciky_x_nahodny = [
+            float(r.real) for r in roots_nahodny
+            if np.isreal(r) and min(x_Range) <= r.real <= max(x_Range)
+        ]
 
-    print(f"--- Výsledky (Model: Matematické kyvadlo) ---")
-    print(f"Poloha průsečíku x: {x_prusecik:.4f} cm")
-    print(f"Perioda v průsečíku T: {y_prusecik:.4f} s")
-    print(f"Vypočtené gravitační zrychlení g: {g_vypoctene_ms2:.4f} m/s^2")
+        if pruseciky_x_nahodny:
+            simulovane_pruseciky.append(pruseciky_x_nahodny[0])
 
-    # --- VYKRESLENÍ ---
-    x_line = np.linspace(min(x_Range), max(x_Range), 1000)
-
-    plt.figure(figsize=(9, 6))
-    # Kreslíme původní data T (ne kvadráty), abychom zachovali tvůj formát grafu
-    plt.scatter(x_Range, T_1_Range, color='blue', s=10, label='$T_1$ [s] (data)')
-    plt.scatter(x_Range, T_2_Range, color='red', s=10, label='$T_2$ [s] (data)')
-
-    # Odmocníme přímky, abychom dostali křivky T pro graf
-    plt.plot(x_line, np.sqrt(np.polyval(p1, x_line)), color='blue', linestyle='dashed',
-             label='Model mat. kyvadla $T_1$')
-    plt.plot(x_line, np.sqrt(np.polyval(p2, x_line)), color='red', linestyle='dashed', label='Model mat. kyvadla $T_2$')
-
-    # Vykreslení průsečíku
-    plt.scatter(x_prusecik, y_prusecik, color='green', s=50, zorder=5,
-                label=f'Průsečík [{x_prusecik:.2f} cm; {y_prusecik:.2f} s]')
-
-    plt.xlabel(f'$C_2$ [cm]')
-    plt.ylabel(f'$T_x$ [s]')
-    plt.title(f"Fit matematického kyvadla ($g = {g_vypoctene_ms2:.3f}\\,\\text{{m/s}}^2$)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.savefig(f'{script_dir}/grafe.svg', format='svg', bbox_inches='tight')
+    # Výsledná směrodatná odchylka je chybou našeho průsečíku
+    if simulovane_pruseciky:
+        sigma_x_prusecik = np.std(simulovane_pruseciky)
+        print_centered_header("MONTE KÁRL", filler="=")
+        print(f"Statistická chyba průsečíku x (z fitu): ± {sigma_x_prusecik:.4f} cm")
+        print(f"Konečný zápis: x = ({x_prusecik:.2f} ± {sigma_x_prusecik:.2f}) cm")
+        print_centered_header("", filler="=")
+    else:
+        sigma_x_prusecik = 0
+        print("Chybu průsečíku nebylo možné nasimulovat.")
 
 
 def main():
@@ -116,23 +99,52 @@ def main():
         T_1_Range = np.array(veli["T_1"]["hodnoty"]);
         T_2_Range = np.array(veli["T_2"]["hodnoty"]);
 
-    return cursed(T_1_Range, T_2_Range, x_Range);
-
     mask = x_Range > 91.5
     x_fit = x_Range[mask]
     T_1_fit = T_1_Range[mask]
     T_2_fit = T_2_Range[mask]
 
-    p1 = np.polyfit(x_fit, T_1_fit, 2);
-    p2 = np.polyfit(x_fit, T_2_fit, 2);
+    p1, cov1 = np.polyfit(x_fit, T_1_fit, 2, cov=True);
+    p2, cov2 = np.polyfit(x_fit, T_2_fit, 2, cov=True);
+
+    a1, b1, c1 = p1;
+    a2, b2, c2 = p2;
+
+    chyby_p1 = np.sqrt(np.diagonal(cov1));
+    chyby_p2 = np.sqrt(np.diagonal(cov2));
+
+
+    print_centered_header("Koeficienty kvadratických fitů");
+
+    print("P1");
+    print(f"├─a = {a1:.4f} ± {chyby_p1[0]:.4f} cm");
+    print(f"├─b = {b1:.4f} ± {chyby_p1[1]:.4f} cm");
+    print(f"└─c = {c1:.4f} ± {chyby_p1[2]:.4f} cm");
+
+    print("P2")
+    print(f"├─a = {a2:.4f} ± {chyby_p2[0]:.4f} cm");
+    print(f"├─b = {b2:.4f} ± {chyby_p2[1]:.4f} cm");
+    print(f"└─c = {c2:.4f} ± {chyby_p2[2]:.4f} cm");
+
+    print_centered_header("");
+    print("")
+
 
     x_line = np.linspace(min(x_Range), max(x_Range), 10000);
 
     plt.figure(figsize=(9, 6));
-    plt.scatter(x_Range, T_1_Range, color='blue', s=10, label='$T_1$ [s]');
-    plt.scatter(x_Range, T_2_Range, color='red', s=10, label='$T_2$ [s]');
-    plt.plot(x_line, np.polyval(p1, x_line), color='blue', linestyle='dashed', label='Fit: $T_1$');
-    plt.plot(x_line, np.polyval(p2, x_line), color='red', linestyle='dashed', label='Fit: $T_2$');
+    # plt.scatter(x_Range, T_1_Range, color='blue', s=10, label='$T_1$ [s]');
+    # plt.scatter(x_Range, T_2_Range, color='red', s=10, label='$T_2$ [s]');
+    plt.errorbar(x_Range, T_1_Range,
+                 xerr=0.5, yerr=0.0001,
+                 fmt='o', color='blue', ecolor='lightblue', elinewidth=1, capsize=3, markersize=5,
+                 label='$T_1$ [s]');
+    plt.errorbar(x_Range, T_2_Range,
+                 xerr=0.5, yerr=0.0001,
+                 fmt='o', color='red', ecolor='tomato', elinewidth=1, capsize=3, markersize=5,
+                 label='$T_2$ [s]');
+    plt.plot(x_line, np.polyval(p1, x_line), color='blue', linestyle='dashed', label='Kvadratický fit: $T_1$');
+    plt.plot(x_line, np.polyval(p2, x_line), color='red', linestyle='dashed', label='Kvadratický fit: $T_2$');
 
     p_diff = p1 - p2;
 
@@ -146,15 +158,16 @@ def main():
         print(f"Přesný průsečík fitu: x = {x_prusecik:.4f} cm, T = {y_prusecik:.4f} s");
 
         plt.scatter(x_prusecik, y_prusecik, color='green', s=30, zorder=5,
-                    label=f'Průsečík [{x_prusecik:.2f}; {y_prusecik:.2f}]');
+                    label=f'Průsečík [{x_prusecik:.1f}; {y_prusecik:.1f}]');
+        monte_Carl(p1, p2, chyby_p1, chyby_p2, x_Range, x_prusecik);
     else:
         print("Průsečíky nenalezeny gg alkane.");
 
     plt.xlabel(f'$C_2$ [cm]');
     plt.ylabel(f'$T_x$ [s]');
-    plt.title("Eheir");
-    plt.legend();
-    plt.grid(True, alpha=0.3);
+    plt.title("Grafické znázornění měření doby kmitů v závislosti na vzdálenosti");
+    plt_Legend();
+    plt.grid(True, alpha=0.1);
 
     # plt.show();
     plt.savefig(f'{script_dir}/grafe.svg', format='svg', bbox_inches='tight');

@@ -170,7 +170,7 @@ def main():
     plt.grid(True, alpha=0.1);
 
     # plt.show();
-    plt.savefig(f'{script_dir}/grafe.svg', format='svg', bbox_inches='tight');
+    plt.savefig(f'{script_dir}/doby_kmitu.svg', format='svg', bbox_inches='tight');
 
 
 if __name__ == "__main__":
